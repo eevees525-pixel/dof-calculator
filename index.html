@@ -2,17 +2,15 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <title>DOF Monitor Pro</title>
     
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#0f0f0f">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="theme-color" content="#ffffff"> <link rel="manifest" href="manifest.json">
     
-    <link rel="icon" sizes="192x192" href="icon.png" purpose="maskable">
-    <link rel="icon" sizes="512x512" href="icon.png" purpose="maskable"> 
-    <link rel="manifest" href="manifest.json">
+    <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
-    <link rel="apple-touch-icon-precomposed" href="icon.png">
 
     <style>
         :root {
@@ -34,11 +32,11 @@
             display: flex;
             flex-direction: column;
             align-items: center;
+            overflow-x: hidden;
         }
 
         .container { width: 100%; max-width: 500px; }
 
-        /* モニターセクション */
         .monitor-card {
             background: #000;
             border: 2px solid #333;
@@ -66,12 +64,11 @@
             font-size: 0.65rem;
             padding: 2px 8px;
             cursor: pointer;
-            font-weight: bold;
         }
 
         .status-right { display: flex; align-items: center; gap: 8px; }
-        .status-label { font-size: 0.7rem; font-weight: bold; color: var(--accent-color); letter-spacing: 0.5px; }
-        .infinity-badge { font-size: 1.2rem; color: var(--warning-color); display: none; text-shadow: 0 0 8px var(--warning-color); }
+        .status-label { font-size: 0.7rem; font-weight: bold; color: var(--accent-color); }
+        .infinity-badge { font-size: 1.2rem; color: var(--warning-color); display: none; }
 
         .viz-container {
             height: 90px;
@@ -102,7 +99,6 @@
 
         .icon-tree { position: absolute; bottom: 5px; font-size: 18px; filter: grayscale(1); opacity: 0.4; pointer-events: none; }
 
-        /* 入力カード */
         .card { background: var(--card-bg); border-radius: 12px; padding: 18px; margin-bottom: 12px; }
         label { display: block; margin-bottom: 6px; font-size: 0.8rem; color: var(--text-dim); }
 
@@ -115,7 +111,7 @@
             font-weight: bold;
             font-family: monospace;
             text-align: right;
-            padding: 4px 8px;
+            padding: 4px;
             border-radius: 4px;
             width: 85px;
         }
@@ -136,14 +132,13 @@
             color: #fff;
             border: 1px solid #444;
             border-radius: 6px;
-            margin-bottom: 8px;
+            margin-bottom: 10px;
             font-size: 0.9rem;
         }
 
-        /* 結果表示 */
-        .grid-results { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; margin-top: 5px; }
+        .grid-results { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
         .res-box { background: #151515; padding: 10px; border-radius: 6px; border-top: 1px solid #333; }
-        .res-lab { font-size: 0.6rem; color: var(--text-dim); margin-bottom: 2px; }
+        .res-lab { font-size: 0.6rem; color: var(--text-dim); }
         .res-val { font-size: 0.9rem; font-weight: bold; }
 
         .btn-action {
@@ -156,9 +151,7 @@
             font-weight: bold;
             text-transform: uppercase;
             margin-top: 5px;
-            cursor: pointer;
         }
-        .btn-action:active { background: var(--accent-color); color: white; }
     </style>
 </head>
 <body>
@@ -204,25 +197,27 @@
     </div>
 
     <div class="card">
-        <div class="control-group">
-            <div class="value-row"><label id="labAperture">Aperture (f-stop)</label><input type="number" id="fBox" class="input-num-box" step="0.1" value="8.0"></div>
-            <input type="range" id="fInput" min="0" max="27" step="1" value="18">
-        </div>
+        <div class="value-row"><label id="labAperture">Aperture (f-stop)</label><input type="number" id="fBox" class="input-num-box" step="0.1" value="8.0"></div>
+        <input type="range" id="fInput" min="0" max="27" step="1" value="18">
         
-        <div class="control-group">
-            <div class="value-row"><label id="labFocal">Focal Length (mm)</label><input type="number" id="flBox" class="input-num-box" value="50"></div>
-            <input type="range" id="flInput" min="5" max="600" step="1" value="50">
-        </div>
+        <div class="value-row"><label id="labFocal">Focal Length (mm)</label><input type="number" id="flBox" class="input-num-box" value="50"></div>
+        <input type="range" id="flInput" min="5" max="600" step="1" value="50">
 
-        <div class="control-group">
-            <div class="value-row"><label id="labDist">Focus Distance (m)</label><input type="number" id="distBox" class="input-num-box" step="0.1" value="3.0"></div>
-            <input type="range" id="distInput" min="0.1" max="50" step="0.1" value="3">
-        </div>
+        <div class="value-row"><label id="labDist">Focus Distance (m)</label><input type="number" id="distBox" class="input-num-box" step="0.1" value="3.0"></div>
+        <input type="range" id="distInput" min="0.1" max="50" step="0.1" value="3">
+        
         <button class="btn-action" onclick="calculatePanfocus()" id="btnPan">SET PAN-FOCUS DIST</button>
     </div>
 </div>
 
 <script>
+    // サービスワーカー登録
+    if ('serviceWorker' in navigator) {
+        window.addEventListener('load', () => {
+            navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed:', err));
+        });
+    }
+
     const fStops = [1.0, 1.1, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5, 2.8, 3.2, 3.5, 4.0, 4.5, 5.0, 5.6, 6.3, 7.1, 8.0, 9.0, 10, 11, 13, 14, 16, 18, 20, 22];
     let currentLang = 'EN';
 
@@ -269,25 +264,14 @@
         const crop = parseFloat(elements.sensor.value);
         const coc = parseFloat(elements.coc.value) / crop;
 
-        if (source === 'fRange') {
-            elements.fBox.value = fStops[elements.fRange.value].toFixed(1);
-        } else if (source === 'fBox') {
-            const val = parseFloat(elements.fBox.value);
-            elements.fRange.value = fStops.reduce((p, c, i) => Math.abs(c - val) < Math.abs(fStops[p] - val) ? i : p, 0);
-        } else if (source === 'flRange') {
-            elements.flBox.value = elements.flRange.value;
-        } else if (source === 'flBox') {
-            elements.flRange.value = elements.flBox.value;
-        } else if (source === 'distRange') {
-            elements.distBox.value = parseFloat(elements.distRange.value).toFixed(1);
-        } else if (source === 'distBox') {
-            elements.distRange.value = elements.distBox.value;
-        }
+        if (source === 'fRange') elements.fBox.value = fStops[elements.fRange.value].toFixed(1);
+        else if (source === 'fBox') elements.fRange.value = fStops.reduce((p, c, i) => Math.abs(c - elements.fBox.value) < Math.abs(fStops[p] - elements.fBox.value) ? i : p, 0);
+        else if (source === 'flRange') elements.flBox.value = elements.flRange.value;
+        else if (source === 'flBox') elements.flRange.value = elements.flBox.value;
+        else if (source === 'distRange') elements.distBox.value = parseFloat(elements.distRange.value).toFixed(1);
+        else if (source === 'distBox') elements.distRange.value = elements.distBox.value;
 
-        const F = parseFloat(elements.fBox.value);
-        const f = parseFloat(elements.flBox.value);
-        const L = parseFloat(elements.distBox.value) * 1000;
-
+        const F = parseFloat(elements.fBox.value), f = parseFloat(elements.flBox.value), L = parseFloat(elements.distBox.value) * 1000;
         const H = (Math.pow(f, 2) / (F * coc)) + f;
         const near = (L * (H - f)) / (H + L - (2 * f));
         let far = (L * (H - f)) / (H - L);
@@ -319,8 +303,7 @@
     function calculatePanfocus() {
         const crop = parseFloat(elements.sensor.value), coc = parseFloat(elements.coc.value) / crop;
         const F = parseFloat(elements.fBox.value), f = parseFloat(elements.flBox.value);
-        const H = (Math.pow(f, 2) / (F * coc)) + f;
-        elements.distBox.value = (H / 1000).toFixed(1);
+        elements.distBox.value = (((Math.pow(f, 2) / (F * coc)) + f) / 1000).toFixed(1);
         update('distBox');
     }
 
@@ -328,7 +311,5 @@
     elements.fRange.max = fStops.length - 1;
     update();
 </script>
-
 </body>
 </html>
-
