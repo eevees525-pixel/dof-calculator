@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DOF Monitor Pro v5.0</title>
+    <title>DOF Monitor Pro v5.1</title>
     
     <meta name="mobile-web-app-capable" content="yes">
     <meta name="theme-color" content="#ffffff">
@@ -15,12 +15,12 @@
         :root {
             --bg-color: #0f0f0f;
             --card-bg: #1e1e1e;
-            --accent-color: #00aaff;
+            --accent-color: #00aaff; /* 基調色の青 */
             --text-main: #f0f0f0;
             --text-dim: #888;
             --focus-gradient: linear-gradient(90deg, rgba(76,175,80,0) 0%, rgba(76,175,80,0.8) 20%, rgba(76,175,80,0.8) 80%, rgba(76,175,80,0) 100%);
-            --warning-color: #ff9800;
-            --lock-color: #ff4444;
+            --warning-color: #ff9800; /* パンフォーカス時のオレンジ */
+            --lock-bg: #00334d; /* ロック時の深い青 */
         }
 
         body {
@@ -86,7 +86,6 @@
 
         .card { background: var(--card-bg); border-radius: 12px; padding: 18px; margin-bottom: 12px; }
         
-        /* コントロール行のスタイル修正 */
         .control-row {
             display: flex;
             align-items: center;
@@ -97,21 +96,24 @@
 
         .label-group { display: flex; align-items: center; gap: 8px; }
 
-        /* ロックスイッチ */
+        /* ロックスイッチ：カラー修整版 */
         .lock-btn {
-            background: #333;
-            border: 1px solid #555;
-            color: #777;
+            background: #222;
+            border: 1px solid #444;
+            color: #666;
             border-radius: 4px;
             font-size: 0.6rem;
-            padding: 4px 6px;
+            padding: 4px 8px;
             cursor: pointer;
             transition: 0.2s;
+            font-weight: bold;
+            letter-spacing: 1px;
         }
         .lock-btn.active {
-            background: var(--lock-color);
-            border-color: var(--lock-color);
-            color: white;
+            background: var(--lock-bg);
+            border-color: var(--accent-color);
+            color: var(--accent-color);
+            box-shadow: 0 0 5px rgba(0, 170, 255, 0.4);
         }
 
         .input-num-box {
@@ -126,7 +128,7 @@
             border-radius: 4px;
             width: 85px;
         }
-        .input-num-box.readonly { color: var(--warning-color); border-color: var(--warning-color); }
+        .input-num-box.readonly { color: var(--warning-color); border-color: #444; }
 
         input[type="range"] { width: 100%; height: 12px; background: #333; border-radius: 6px; -webkit-appearance: none; margin-bottom: 20px; }
         select { width: 100%; padding: 12px; background: #2a2a2a; color: #fff; border: 1px solid #444; border-radius: 6px; margin-bottom: 10px; font-size: 0.9rem; }
@@ -241,7 +243,6 @@
         let f = parseFloat(document.getElementById('flBox').value);
         let L = parseFloat(document.getElementById('distBox').value) * 1000;
 
-        // スライダー/ボックス同期
         if (source === 'fRange') { F = fStops[document.getElementById('fInput').value]; document.getElementById('fBox').value = F.toFixed(1); }
         if (source === 'fBox') document.getElementById('fInput').value = fStops.reduce((p, c, i) => Math.abs(c - F) < Math.abs(fStops[p] - F) ? i : p, 0);
         if (source === 'flRange') { f = document.getElementById('flInput').value; document.getElementById('flBox').value = f; }
@@ -249,15 +250,13 @@
         if (source === 'distRange') { L = document.getElementById('distInput').value * 1000; document.getElementById('distBox').value = (L/1000).toFixed(1); }
         if (source === 'distBox') document.getElementById('distInput').value = L/1000;
 
-        // 逆算ロジック：パンフォーカス(L=H)を前提とした計算
-        // H = f^2 / (F * coc) + f
-        // これを各変数について解く
+        // 逆算ロジック
         if (source === 'distRange' || source === 'distBox') {
-             if (!locks.F && locks.FL) { // 焦点距離固定、絞りを逆算
+             if (!locks.F && locks.FL) {
                 F = Math.pow(f, 2) / ((L - f) * coc);
                 document.getElementById('fBox').value = F.toFixed(1);
                 document.getElementById('fInput').value = fStops.reduce((p, c, i) => Math.abs(c - F) < Math.abs(fStops[p] - F) ? i : p, 0);
-             } else if (!locks.FL && locks.F) { // 絞り固定、焦点距離を逆算
+             } else if (!locks.FL && locks.F) {
                 f = (coc * F + Math.sqrt(Math.pow(coc * F, 2) + 4 * coc * F * L)) / 2;
                 document.getElementById('flBox').value = Math.round(f);
                 document.getElementById('flInput').value = Math.round(f);
@@ -283,17 +282,6 @@
         const barL = (near / 1000 * vizScale), barR = isPan ? 100 : (far / 1000 * vizScale);
         document.getElementById('dofBar').style.left = Math.min(99, barL) + "%";
         document.getElementById('dofBar').style.width = Math.max(0, Math.min(100 - barL, (barR - barL))) + "%";
-    }
-
-    function calculatePanfocus() {
-        // 現在の絞りと焦点距離から、過焦点距離（パンフォーカス開始点）を求めてピント位置を上書き
-        const crop = parseFloat(document.getElementById('sensorSize').value);
-        const coc = parseFloat(document.getElementById('cocBase').value) / crop;
-        const F = parseFloat(document.getElementById('fBox').value);
-        const f = parseFloat(document.getElementById('flBox').value);
-        const H = (Math.pow(f, 2) / (F * coc)) + f;
-        document.getElementById('distBox').value = (H / 1000).toFixed(1);
-        update('distBox');
     }
 
     document.getElementById('fInput').max = fStops.length - 1;
