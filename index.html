@@ -3,12 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DOF Monitor Pro</title>
+    <title>DOF Monitor Pro v5.0</title>
     
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="apple-mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#ffffff"> <link rel="manifest" href="manifest.json">
-    
+    <meta name="theme-color" content="#ffffff">
+    <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
 
@@ -21,6 +20,7 @@
             --text-dim: #888;
             --focus-gradient: linear-gradient(90deg, rgba(76,175,80,0) 0%, rgba(76,175,80,0.8) 20%, rgba(76,175,80,0.8) 80%, rgba(76,175,80,0) 100%);
             --warning-color: #ff9800;
+            --lock-color: #ff4444;
         }
 
         body {
@@ -32,7 +32,6 @@
             display: flex;
             flex-direction: column;
             align-items: center;
-            overflow-x: hidden;
         }
 
         .container { width: 100%; max-width: 500px; }
@@ -43,7 +42,6 @@
             border-radius: 8px;
             padding: 12px;
             margin-bottom: 15px;
-            position: relative;
             box-shadow: inset 0 0 20px rgba(0,170,255,0.1);
         }
 
@@ -66,7 +64,6 @@
             cursor: pointer;
         }
 
-        .status-right { display: flex; align-items: center; gap: 8px; }
         .status-label { font-size: 0.7rem; font-weight: bold; color: var(--accent-color); }
         .infinity-badge { font-size: 1.2rem; color: var(--warning-color); display: none; }
 
@@ -76,33 +73,47 @@
             position: relative;
             border-radius: 4px;
             margin: 10px 0;
-            border: 1px solid #222;
         }
 
-        .dof-bar {
-            height: 36px;
-            background: var(--focus-gradient);
-            position: absolute;
-            top: 27px;
-            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
-        }
-
-        .subject-marker {
-            width: 2px;
-            height: 60px;
-            background: #fff;
-            position: absolute;
-            top: 15px;
-            z-index: 10;
-            box-shadow: 0 0 10px var(--accent-color);
-        }
-
+        .dof-bar { height: 36px; background: var(--focus-gradient); position: absolute; top: 27px; transition: 0.3s; }
+        .subject-marker { width: 2px; height: 60px; background: #fff; position: absolute; top: 15px; z-index: 10; box-shadow: 0 0 10px var(--accent-color); }
         .icon-tree { position: absolute; bottom: 5px; font-size: 18px; filter: grayscale(1); opacity: 0.4; pointer-events: none; }
 
-        .card { background: var(--card-bg); border-radius: 12px; padding: 18px; margin-bottom: 12px; }
-        label { display: block; margin-bottom: 6px; font-size: 0.8rem; color: var(--text-dim); }
+        .grid-results { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+        .res-box { background: #151515; padding: 10px; border-radius: 6px; border-top: 1px solid #333; }
+        .res-lab { font-size: 0.6rem; color: var(--text-dim); }
+        .res-val { font-size: 0.9rem; font-weight: bold; }
 
-        .value-row { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+        .card { background: var(--card-bg); border-radius: 12px; padding: 18px; margin-bottom: 12px; }
+        
+        /* コントロール行のスタイル修正 */
+        .control-row {
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            margin-bottom: 8px;
+            gap: 10px;
+        }
+
+        .label-group { display: flex; align-items: center; gap: 8px; }
+
+        /* ロックスイッチ */
+        .lock-btn {
+            background: #333;
+            border: 1px solid #555;
+            color: #777;
+            border-radius: 4px;
+            font-size: 0.6rem;
+            padding: 4px 6px;
+            cursor: pointer;
+            transition: 0.2s;
+        }
+        .lock-btn.active {
+            background: var(--lock-color);
+            border-color: var(--lock-color);
+            color: white;
+        }
+
         .input-num-box {
             background: #000;
             border: 1px solid #444;
@@ -115,43 +126,10 @@
             border-radius: 4px;
             width: 85px;
         }
+        .input-num-box.readonly { color: var(--warning-color); border-color: var(--warning-color); }
 
-        input[type="range"] {
-            width: 100%;
-            height: 12px;
-            background: #333;
-            border-radius: 6px;
-            -webkit-appearance: none;
-            margin-bottom: 20px;
-        }
-
-        select {
-            width: 100%;
-            padding: 12px;
-            background: #2a2a2a;
-            color: #fff;
-            border: 1px solid #444;
-            border-radius: 6px;
-            margin-bottom: 10px;
-            font-size: 0.9rem;
-        }
-
-        .grid-results { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .res-box { background: #151515; padding: 10px; border-radius: 6px; border-top: 1px solid #333; }
-        .res-lab { font-size: 0.6rem; color: var(--text-dim); }
-        .res-val { font-size: 0.9rem; font-weight: bold; }
-
-        .btn-action {
-            width: 100%;
-            padding: 15px;
-            background: #222;
-            color: var(--accent-color);
-            border: 1px solid var(--accent-color);
-            border-radius: 8px;
-            font-weight: bold;
-            text-transform: uppercase;
-            margin-top: 5px;
-        }
+        input[type="range"] { width: 100%; height: 12px; background: #333; border-radius: 6px; -webkit-appearance: none; margin-bottom: 20px; }
+        select { width: 100%; padding: 12px; background: #2a2a2a; color: #fff; border: 1px solid #444; border-radius: 6px; margin-bottom: 10px; font-size: 0.9rem; }
     </style>
 </head>
 <body>
@@ -160,7 +138,7 @@
     <div class="monitor-card">
         <div class="monitor-header">
             <button class="lang-switch" onclick="toggleLang()" id="langBtn">EN / JP</button>
-            <div class="status-right">
+            <div style="display:flex; align-items:center; gap:8px;">
                 <span id="statusLabel" class="status-label">READY</span>
                 <span id="infinityIcon" class="infinity-badge">∞</span>
             </div>
@@ -182,14 +160,14 @@
 
     <div class="card">
         <label id="labSensor">Sensor / CoC Settings</label>
-        <select id="sensorSize">
+        <select id="sensorSize" onchange="update('sensor')">
             <option value="1.0">Full Frame (x1.0)</option>
             <option value="1.5">APS-C (x1.5)</option>
             <option value="2.0">Micro Four Thirds (x2.0)</option>
             <option value="5.62">Smartphone 1/1.3"</option>
             <option value="7.61">Action Cam 1/2.3"</option>
         </select>
-        <select id="cocBase">
+        <select id="cocBase" onchange="update('sensor')">
             <option value="0.030">0.030mm (Standard)</option>
             <option value="0.020">0.020mm (High Res 45MP+)</option>
             <option value="0.015">0.015mm (Ultra High 100MP+)</option>
@@ -197,81 +175,95 @@
     </div>
 
     <div class="card">
-        <div class="value-row"><label id="labAperture">Aperture (f-stop)</label><input type="number" id="fBox" class="input-num-box" step="0.1" value="8.0"></div>
-        <input type="range" id="fInput" min="0" max="27" step="1" value="18">
-        
-        <div class="value-row"><label id="labFocal">Focal Length (mm)</label><input type="number" id="flBox" class="input-num-box" value="50"></div>
-        <input type="range" id="flInput" min="5" max="600" step="1" value="50">
+        <div class="control-row">
+            <div class="label-group">
+                <button class="lock-btn" id="lockF" onclick="toggleLock('F')">LOCK</button>
+                <label id="labAperture" style="margin:0">Aperture (f)</label>
+            </div>
+            <input type="number" id="fBox" class="input-num-box" step="0.1" value="8.0" oninput="update('fBox')">
+        </div>
+        <input type="range" id="fInput" min="0" max="27" step="1" value="18" oninput="update('fRange')">
 
-        <div class="value-row"><label id="labDist">Focus Distance (m)</label><input type="number" id="distBox" class="input-num-box" step="0.1" value="3.0"></div>
-        <input type="range" id="distInput" min="0.1" max="50" step="0.1" value="3">
-        
-        <button class="btn-action" onclick="calculatePanfocus()" id="btnPan">SET PAN-FOCUS DIST</button>
+        <div class="control-row">
+            <div class="label-group">
+                <button class="lock-btn" id="lockFL" onclick="toggleLock('FL')">LOCK</button>
+                <label id="labFocal" style="margin:0">Focal (mm)</label>
+            </div>
+            <input type="number" id="flBox" class="input-num-box" value="50" oninput="update('flBox')">
+        </div>
+        <input type="range" id="flInput" min="5" max="600" step="1" value="50" oninput="update('flRange')">
+
+        <div class="control-row">
+            <div class="label-group">
+                <button class="lock-btn active" id="lockDist" onclick="toggleLock('Dist')">LOCK</button>
+                <label id="labDist" style="margin:0">Dist (m)</label>
+            </div>
+            <input type="number" id="distBox" class="input-num-box" step="0.1" value="3.0" oninput="update('distBox')">
+        </div>
+        <input type="range" id="distInput" min="0.1" max="50" step="0.1" value="3" oninput="update('distRange')">
     </div>
 </div>
 
 <script>
-    // サービスワーカー登録
     if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => {
-            navigator.serviceWorker.register('sw.js').catch(err => console.log('SW registration failed:', err));
-        });
+        window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
     }
 
     const fStops = [1.0, 1.1, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5, 2.8, 3.2, 3.5, 4.0, 4.5, 5.0, 5.6, 6.3, 7.1, 8.0, 9.0, 10, 11, 13, 14, 16, 18, 20, 22];
     let currentLang = 'EN';
+    let locks = { F: false, FL: false, Dist: true };
 
     const langData = {
-        JP: {
-            ready: "準備完了", panActive: "パンフォーカス有効", near: "前方被写界深度", far: "後方被写界深度",
-            total: "被写界深度 合計", hyper: "過焦点距離", sensor: "機材設定 / 許容錯乱円", aperture: "絞り値 (f)",
-            focal: "焦点距離 (mm)", dist: "ピント位置 (m)", btn: "パンフォーカス距離に設定"
-        },
-        EN: {
-            ready: "READY", panActive: "PAN-FOCUS ACTIVE", near: "NEAR LIMIT", far: "FAR LIMIT",
-            total: "TOTAL DoF", hyper: "HYPERFOCAL", sensor: "Sensor / CoC Settings", aperture: "Aperture (f-stop)",
-            focal: "Focal Length (mm)", dist: "Focus Distance (m)", btn: "SET PAN-FOCUS DIST"
-        }
+        JP: { ready: "READY", panActive: "PAN-FOCUS", near: "前方限界", far: "後方限界", total: "被写界深度", hyper: "過焦点距離", sensor: "機材/許容錯乱円", aperture: "絞り値 (f)", focal: "焦点距離 (mm)", dist: "距離 (m)" },
+        EN: { ready: "READY", panActive: "PAN-FOCUS", near: "NEAR", far: "FAR", total: "TOTAL DoF", hyper: "HYPERFOCAL", sensor: "Sensor / CoC", aperture: "Aperture (f)", focal: "Focal (mm)", dist: "Dist (m)" }
     };
 
     function toggleLang() {
         currentLang = (currentLang === 'EN') ? 'JP' : 'EN';
         const d = langData[currentLang];
-        document.getElementById('labNear').innerText = d.near;
-        document.getElementById('labFar').innerText = d.far;
-        document.getElementById('labTotal').innerText = d.total;
-        document.getElementById('labHyper').innerText = d.hyper;
-        document.getElementById('labSensor').innerText = d.sensor;
-        document.getElementById('labAperture').innerText = d.aperture;
-        document.getElementById('labFocal').innerText = d.focal;
-        document.getElementById('labDist').innerText = d.dist;
-        document.getElementById('btnPan').innerText = d.btn;
+        ['labNear','labFar','labTotal','labHyper','labSensor','labAperture','labFocal','labDist'].forEach(id => {
+            document.getElementById(id).innerText = d[id.replace('lab','').toLowerCase()];
+        });
         update();
     }
 
-    const elements = {
-        sensor: document.getElementById('sensorSize'),
-        coc: document.getElementById('cocBase'),
-        fRange: document.getElementById('fInput'),
-        fBox: document.getElementById('fBox'),
-        flRange: document.getElementById('flInput'),
-        flBox: document.getElementById('flBox'),
-        distRange: document.getElementById('distInput'),
-        distBox: document.getElementById('distBox')
-    };
+    function toggleLock(key) {
+        locks[key] = !locks[key];
+        document.getElementById('lock' + key).classList.toggle('active', locks[key]);
+        document.getElementById(key.toLowerCase() + 'Box').classList.toggle('readonly', locks[key]);
+    }
 
     function update(source) {
-        const crop = parseFloat(elements.sensor.value);
-        const coc = parseFloat(elements.coc.value) / crop;
+        const crop = parseFloat(document.getElementById('sensorSize').value);
+        const coc = parseFloat(document.getElementById('cocBase').value) / crop;
+        
+        let F = parseFloat(document.getElementById('fBox').value);
+        let f = parseFloat(document.getElementById('flBox').value);
+        let L = parseFloat(document.getElementById('distBox').value) * 1000;
 
-        if (source === 'fRange') elements.fBox.value = fStops[elements.fRange.value].toFixed(1);
-        else if (source === 'fBox') elements.fRange.value = fStops.reduce((p, c, i) => Math.abs(c - elements.fBox.value) < Math.abs(fStops[p] - elements.fBox.value) ? i : p, 0);
-        else if (source === 'flRange') elements.flBox.value = elements.flRange.value;
-        else if (source === 'flBox') elements.flRange.value = elements.flBox.value;
-        else if (source === 'distRange') elements.distBox.value = parseFloat(elements.distRange.value).toFixed(1);
-        else if (source === 'distBox') elements.distRange.value = elements.distBox.value;
+        // スライダー/ボックス同期
+        if (source === 'fRange') { F = fStops[document.getElementById('fInput').value]; document.getElementById('fBox').value = F.toFixed(1); }
+        if (source === 'fBox') document.getElementById('fInput').value = fStops.reduce((p, c, i) => Math.abs(c - F) < Math.abs(fStops[p] - F) ? i : p, 0);
+        if (source === 'flRange') { f = document.getElementById('flInput').value; document.getElementById('flBox').value = f; }
+        if (source === 'flBox') document.getElementById('flInput').value = f;
+        if (source === 'distRange') { L = document.getElementById('distInput').value * 1000; document.getElementById('distBox').value = (L/1000).toFixed(1); }
+        if (source === 'distBox') document.getElementById('distInput').value = L/1000;
 
-        const F = parseFloat(elements.fBox.value), f = parseFloat(elements.flBox.value), L = parseFloat(elements.distBox.value) * 1000;
+        // 逆算ロジック：パンフォーカス(L=H)を前提とした計算
+        // H = f^2 / (F * coc) + f
+        // これを各変数について解く
+        if (source === 'distRange' || source === 'distBox') {
+             if (!locks.F && locks.FL) { // 焦点距離固定、絞りを逆算
+                F = Math.pow(f, 2) / ((L - f) * coc);
+                document.getElementById('fBox').value = F.toFixed(1);
+                document.getElementById('fInput').value = fStops.reduce((p, c, i) => Math.abs(c - F) < Math.abs(fStops[p] - F) ? i : p, 0);
+             } else if (!locks.FL && locks.F) { // 絞り固定、焦点距離を逆算
+                f = (coc * F + Math.sqrt(Math.pow(coc * F, 2) + 4 * coc * F * L)) / 2;
+                document.getElementById('flBox').value = Math.round(f);
+                document.getElementById('flInput').value = Math.round(f);
+             }
+        }
+
         const H = (Math.pow(f, 2) / (F * coc)) + f;
         const near = (L * (H - f)) / (H + L - (2 * f));
         let far = (L * (H - f)) / (H - L);
@@ -279,19 +271,12 @@
         
         document.getElementById('nearLimit').innerText = (near / 1000).toFixed(2) + "m";
         document.getElementById('farLimit').innerText = isPan ? "∞" : (far / 1000).toFixed(2) + "m";
-        document.getElementById('totalDof').innerText = isPan ? "INFINITY" : ((far - near) / 1000).toFixed(2) + "m";
+        document.getElementById('totalDof').innerText = isPan ? "PAN-FOCUS" : ((far - near) / 1000).toFixed(2) + "m";
         document.getElementById('hyperfocal').innerText = (H / 1000).toFixed(2) + "m";
 
         const inf = document.getElementById('infinityIcon'), stat = document.getElementById('statusLabel');
-        if (isPan) {
-            inf.style.display = 'inline';
-            stat.innerText = langData[currentLang].panActive;
-            stat.style.color = "var(--warning-color)";
-        } else {
-            inf.style.display = 'none';
-            stat.innerText = langData[currentLang].ready;
-            stat.style.color = "var(--accent-color)";
-        }
+        if (isPan) { inf.style.display = 'inline'; stat.innerText = langData[currentLang].panActive; stat.style.color = "var(--warning-color)"; }
+        else { inf.style.display = 'none'; stat.innerText = langData[currentLang].ready; stat.style.color = "var(--accent-color)"; }
 
         const vizScale = 100 / 50;
         document.getElementById('subjectMarker').style.left = Math.min(98, (L / 1000 * vizScale)) + "%";
@@ -301,14 +286,17 @@
     }
 
     function calculatePanfocus() {
-        const crop = parseFloat(elements.sensor.value), coc = parseFloat(elements.coc.value) / crop;
-        const F = parseFloat(elements.fBox.value), f = parseFloat(elements.flBox.value);
-        elements.distBox.value = (((Math.pow(f, 2) / (F * coc)) + f) / 1000).toFixed(1);
+        // 現在の絞りと焦点距離から、過焦点距離（パンフォーカス開始点）を求めてピント位置を上書き
+        const crop = parseFloat(document.getElementById('sensorSize').value);
+        const coc = parseFloat(document.getElementById('cocBase').value) / crop;
+        const F = parseFloat(document.getElementById('fBox').value);
+        const f = parseFloat(document.getElementById('flBox').value);
+        const H = (Math.pow(f, 2) / (F * coc)) + f;
+        document.getElementById('distBox').value = (H / 1000).toFixed(1);
         update('distBox');
     }
 
-    Object.keys(elements).forEach(k => elements[k].addEventListener('input', () => update(k)));
-    elements.fRange.max = fStops.length - 1;
+    document.getElementById('fInput').max = fStops.length - 1;
     update();
 </script>
 </body>
