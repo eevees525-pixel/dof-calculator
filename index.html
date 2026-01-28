@@ -3,24 +3,25 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DOF Monitor Pro v5.1</title>
+    <title>DOF Monitor Pro v6.0 - Marine Edition</title>
     
     <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#ffffff">
+    <meta name="theme-color" content="#001a33">
     <link rel="manifest" href="manifest.json">
     <link rel="icon" type="image/png" href="icon.png">
     <link rel="apple-touch-icon" href="icon.png">
 
     <style>
         :root {
-            --bg-color: #0f0f0f;
-            --card-bg: #1e1e1e;
-            --accent-color: #00aaff; /* 基調色の青 */
+            --bg-color: #050a0f;
+            --card-bg: #111a22;
+            --accent-color: #00aaff;
+            --marine-color: #00ffff;
             --text-main: #f0f0f0;
             --text-dim: #888;
             --focus-gradient: linear-gradient(90deg, rgba(76,175,80,0) 0%, rgba(76,175,80,0.8) 20%, rgba(76,175,80,0.8) 80%, rgba(76,175,80,0) 100%);
-            --warning-color: #ff9800; /* パンフォーカス時のオレンジ */
-            --lock-bg: #00334d; /* ロック時の深い青 */
+            --warning-color: #ff9800;
+            --lock-bg: #00334d;
         }
 
         body {
@@ -38,7 +39,7 @@
 
         .monitor-card {
             background: #000;
-            border: 2px solid #333;
+            border: 2px solid #1a334d;
             border-radius: 8px;
             padding: 12px;
             margin-bottom: 15px;
@@ -51,25 +52,22 @@
             align-items: center;
             height: 28px;
             margin-bottom: 8px;
-            border-bottom: 1px solid #222;
+            border-bottom: 1px solid #1a334d;
         }
 
-        .lang-switch {
-            background: #333;
-            border: 1px solid var(--accent-color);
-            color: var(--accent-color);
-            border-radius: 4px;
+        .mode-badge {
             font-size: 0.65rem;
             padding: 2px 8px;
-            cursor: pointer;
+            border-radius: 4px;
+            font-weight: bold;
+            transition: 0.3s;
         }
-
-        .status-label { font-size: 0.7rem; font-weight: bold; color: var(--accent-color); }
-        .infinity-badge { font-size: 1.2rem; color: var(--warning-color); display: none; }
+        .mode-air { background: #333; color: #fff; }
+        .mode-water { background: var(--marine-color); color: #000; box-shadow: 0 0 10px var(--marine-color); }
 
         .viz-container {
             height: 90px;
-            background: repeating-linear-gradient(90deg, #111 0px, #111 49px, #222 50px);
+            background: repeating-linear-gradient(90deg, #05101a 0px, #05101a 49px, #1a334d 50px);
             position: relative;
             border-radius: 4px;
             margin: 10px 0;
@@ -77,61 +75,40 @@
 
         .dof-bar { height: 36px; background: var(--focus-gradient); position: absolute; top: 27px; transition: 0.3s; }
         .subject-marker { width: 2px; height: 60px; background: #fff; position: absolute; top: 15px; z-index: 10; box-shadow: 0 0 10px var(--accent-color); }
-        .icon-tree { position: absolute; bottom: 5px; font-size: 18px; filter: grayscale(1); opacity: 0.4; pointer-events: none; }
+        .icon-tree { position: absolute; bottom: 5px; font-size: 18px; filter: grayscale(1); opacity: 0.4; }
 
         .grid-results { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .res-box { background: #151515; padding: 10px; border-radius: 6px; border-top: 1px solid #333; }
+        .res-box { background: #0a141d; padding: 10px; border-radius: 6px; border-top: 1px solid #1a334d; }
         .res-lab { font-size: 0.6rem; color: var(--text-dim); }
         .res-val { font-size: 0.9rem; font-weight: bold; }
 
-        .card { background: var(--card-bg); border-radius: 12px; padding: 18px; margin-bottom: 12px; }
+        .card { background: var(--card-bg); border-radius: 12px; padding: 18px; margin-bottom: 12px; border: 1px solid #1a334d; }
         
-        .control-row {
-            display: flex;
-            align-items: center;
-            justify-content: space-between;
-            margin-bottom: 8px;
-            gap: 10px;
-        }
-
+        .control-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 10px; }
         .label-group { display: flex; align-items: center; gap: 8px; }
 
-        /* ロックスイッチ：カラー修整版 */
         .lock-btn {
-            background: #222;
-            border: 1px solid #444;
-            color: #666;
-            border-radius: 4px;
-            font-size: 0.6rem;
-            padding: 4px 8px;
-            cursor: pointer;
-            transition: 0.2s;
-            font-weight: bold;
-            letter-spacing: 1px;
+            background: #222; border: 1px solid #444; color: #666; border-radius: 4px;
+            font-size: 0.6rem; padding: 4px 8px; cursor: pointer; font-weight: bold;
         }
-        .lock-btn.active {
-            background: var(--lock-bg);
-            border-color: var(--accent-color);
-            color: var(--accent-color);
-            box-shadow: 0 0 5px rgba(0, 170, 255, 0.4);
-        }
+        .lock-btn.active { background: var(--lock-bg); border-color: var(--accent-color); color: var(--accent-color); }
 
         .input-num-box {
-            background: #000;
-            border: 1px solid #444;
-            color: var(--accent-color);
-            font-size: 1.2rem;
-            font-weight: bold;
-            font-family: monospace;
-            text-align: right;
-            padding: 4px;
-            border-radius: 4px;
-            width: 85px;
+            background: #000; border: 1px solid #1a334d; color: var(--accent-color);
+            font-size: 1.2rem; font-weight: bold; font-family: monospace; text-align: right;
+            padding: 4px; border-radius: 4px; width: 85px;
         }
-        .input-num-box.readonly { color: var(--warning-color); border-color: #444; }
+        .input-num-box.readonly { color: var(--warning-color); }
 
-        input[type="range"] { width: 100%; height: 12px; background: #333; border-radius: 6px; -webkit-appearance: none; margin-bottom: 20px; }
-        select { width: 100%; padding: 12px; background: #2a2a2a; color: #fff; border: 1px solid #444; border-radius: 6px; margin-bottom: 10px; font-size: 0.9rem; }
+        /* 水中スイッチ */
+        .switch-container { display: flex; align-items: center; gap: 10px; background: #0a141d; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #1a334d; }
+        .toggle-switch { position: relative; width: 40px; height: 20px; -webkit-appearance: none; background: #333; border-radius: 10px; outline: none; transition: 0.3s; cursor: pointer; }
+        .toggle-switch:checked { background: var(--marine-color); }
+        .toggle-switch::before { content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%; top: 2px; left: 2px; background: #fff; transition: 0.3s; }
+        .toggle-switch:checked::before { left: 22px; }
+
+        input[type="range"] { width: 100%; height: 12px; background: #1a334d; border-radius: 6px; -webkit-appearance: none; margin-bottom: 20px; }
+        select { width: 100%; padding: 12px; background: #0a141d; color: #fff; border: 1px solid #1a334d; border-radius: 6px; margin-bottom: 10px; }
     </style>
 </head>
 <body>
@@ -139,16 +116,16 @@
 <div class="container">
     <div class="monitor-card">
         <div class="monitor-header">
-            <button class="lang-switch" onclick="toggleLang()" id="langBtn">EN / JP</button>
+            <span id="modeBadge" class="mode-badge mode-air">AIR MODE</span>
             <div style="display:flex; align-items:center; gap:8px;">
                 <span id="statusLabel" class="status-label">READY</span>
                 <span id="infinityIcon" class="infinity-badge">∞</span>
             </div>
         </div>
         <div class="viz-container">
-            <span class="icon-tree" style="left: 10px;">🌲</span>
-            <span class="icon-tree" style="left: 50%;">🌳</span>
-            <span class="icon-tree" style="right: 10px;">🏔️</span>
+            <span class="icon-tree" id="iconLeft" style="left: 10px;">🌲</span>
+            <span class="icon-tree" id="iconCenter" style="left: 50%;">🌳</span>
+            <span class="icon-tree" id="iconRight" style="right: 10px;">🏔️</span>
             <div id="dofBar" class="dof-bar"></div>
             <div id="subjectMarker" class="subject-marker"></div>
         </div>
@@ -160,6 +137,11 @@
         </div>
     </div>
 
+    <div class="switch-container">
+        <input type="checkbox" id="waterMode" class="toggle-switch" onchange="update('mode')">
+        <label id="labWater" style="font-size: 0.8rem; font-weight: bold;">UNDERWATER MODE (Refraction x1.33)</label>
+    </div>
+
     <div class="card">
         <label id="labSensor">Sensor / CoC Settings</label>
         <select id="sensorSize" onchange="update('sensor')">
@@ -167,67 +149,39 @@
             <option value="1.5">APS-C (x1.5)</option>
             <option value="2.0">Micro Four Thirds (x2.0)</option>
             <option value="5.62">Smartphone 1/1.3"</option>
-            <option value="7.61">Action Cam 1/2.3"</option>
         </select>
         <select id="cocBase" onchange="update('sensor')">
             <option value="0.030">0.030mm (Standard)</option>
             <option value="0.020">0.020mm (High Res 45MP+)</option>
-            <option value="0.015">0.015mm (Ultra High 100MP+)</option>
         </select>
     </div>
 
     <div class="card">
         <div class="control-row">
-            <div class="label-group">
-                <button class="lock-btn" id="lockF" onclick="toggleLock('F')">LOCK</button>
-                <label id="labAperture" style="margin:0">Aperture (f)</label>
-            </div>
+            <div class="label-group"><button class="lock-btn" id="lockF" onclick="toggleLock('F')">LOCK</button><label id="labAperture">Aperture (f)</label></div>
             <input type="number" id="fBox" class="input-num-box" step="0.1" value="8.0" oninput="update('fBox')">
         </div>
         <input type="range" id="fInput" min="0" max="27" step="1" value="18" oninput="update('fRange')">
 
         <div class="control-row">
-            <div class="label-group">
-                <button class="lock-btn" id="lockFL" onclick="toggleLock('FL')">LOCK</button>
-                <label id="labFocal" style="margin:0">Focal (mm)</label>
-            </div>
-            <input type="number" id="flBox" class="input-num-box" value="50" oninput="update('flBox')">
+            <div class="label-group"><button class="lock-btn" id="lockFL" onclick="toggleLock('FL')">LOCK</button><label id="labFocal">Focal (mm)</label></div>
+            <input type="number" id="flBox" class="input-num-box" value="24" oninput="update('flBox')">
         </div>
-        <input type="range" id="flInput" min="5" max="600" step="1" value="50" oninput="update('flRange')">
+        <input type="range" id="flInput" min="8" max="200" step="1" value="24" oninput="update('flRange')">
 
         <div class="control-row">
-            <div class="label-group">
-                <button class="lock-btn active" id="lockDist" onclick="toggleLock('Dist')">LOCK</button>
-                <label id="labDist" style="margin:0">Dist (m)</label>
-            </div>
-            <input type="number" id="distBox" class="input-num-box" step="0.1" value="3.0" oninput="update('distBox')">
+            <div class="label-group"><button class="lock-btn active" id="lockDist" onclick="toggleLock('Dist')">LOCK</button><label id="labDist">Dist (m)</label></div>
+            <input type="number" id="distBox" class="input-num-box" step="0.1" value="2.0" oninput="update('distBox')">
         </div>
-        <input type="range" id="distInput" min="0.1" max="50" step="0.1" value="3" oninput="update('distRange')">
+        <input type="range" id="distInput" min="0.3" max="20" step="0.1" value="2" oninput="update('distRange')">
     </div>
 </div>
 
 <script>
-    if ('serviceWorker' in navigator) {
-        window.addEventListener('load', () => { navigator.serviceWorker.register('sw.js'); });
-    }
+    if ('serviceWorker' in navigator) { navigator.serviceWorker.register('sw.js'); }
 
     const fStops = [1.0, 1.1, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5, 2.8, 3.2, 3.5, 4.0, 4.5, 5.0, 5.6, 6.3, 7.1, 8.0, 9.0, 10, 11, 13, 14, 16, 18, 20, 22];
-    let currentLang = 'EN';
     let locks = { F: false, FL: false, Dist: true };
-
-    const langData = {
-        JP: { ready: "READY", panActive: "PAN-FOCUS", near: "前方限界", far: "後方限界", total: "被写界深度", hyper: "過焦点距離", sensor: "機材/許容錯乱円", aperture: "絞り値 (f)", focal: "焦点距離 (mm)", dist: "距離 (m)" },
-        EN: { ready: "READY", panActive: "PAN-FOCUS", near: "NEAR", far: "FAR", total: "TOTAL DoF", hyper: "HYPERFOCAL", sensor: "Sensor / CoC", aperture: "Aperture (f)", focal: "Focal (mm)", dist: "Dist (m)" }
-    };
-
-    function toggleLang() {
-        currentLang = (currentLang === 'EN') ? 'JP' : 'EN';
-        const d = langData[currentLang];
-        ['labNear','labFar','labTotal','labHyper','labSensor','labAperture','labFocal','labDist'].forEach(id => {
-            document.getElementById(id).innerText = d[id.replace('lab','').toLowerCase()];
-        });
-        update();
-    }
 
     function toggleLock(key) {
         locks[key] = !locks[key];
@@ -236,30 +190,35 @@
     }
 
     function update(source) {
+        const isWater = document.getElementById('waterMode').checked;
         const crop = parseFloat(document.getElementById('sensorSize').value);
         const coc = parseFloat(document.getElementById('cocBase').value) / crop;
         
         let F = parseFloat(document.getElementById('fBox').value);
-        let f = parseFloat(document.getElementById('flBox').value);
+        let f_input = parseFloat(document.getElementById('flBox').value);
         let L = parseFloat(document.getElementById('distBox').value) * 1000;
 
-        if (source === 'fRange') { F = fStops[document.getElementById('fInput').value]; document.getElementById('fBox').value = F.toFixed(1); }
-        if (source === 'fBox') document.getElementById('fInput').value = fStops.reduce((p, c, i) => Math.abs(c - F) < Math.abs(fStops[p] - F) ? i : p, 0);
-        if (source === 'flRange') { f = document.getElementById('flInput').value; document.getElementById('flBox').value = f; }
-        if (source === 'flBox') document.getElementById('flInput').value = f;
-        if (source === 'distRange') { L = document.getElementById('distInput').value * 1000; document.getElementById('distBox').value = (L/1000).toFixed(1); }
-        if (source === 'distBox') document.getElementById('distInput').value = L/1000;
+        // 水中補正: 焦点距離を1.33倍として計算に使う
+        let f = isWater ? f_input * 1.33 : f_input;
 
-        // 逆算ロジック
+        // UI更新
+        const badge = document.getElementById('modeBadge');
+        badge.innerText = isWater ? "UNDERWATER MODE" : "AIR MODE";
+        badge.className = isWater ? "mode-badge mode-water" : "mode-badge mode-air";
+        document.getElementById('iconLeft').innerText = isWater ? "🐬" : "🌲";
+        document.getElementById('iconCenter').innerText = isWater ? "🐋" : "🌳";
+        document.getElementById('iconRight').innerText = isWater ? "🌊" : "🏔️";
+
+        // 同期処理
+        if (source === 'fRange') { F = fStops[document.getElementById('fInput').value]; document.getElementById('fBox').value = F.toFixed(1); }
+        if (source === 'flRange') { f_input = document.getElementById('flInput').value; document.getElementById('flBox').value = f_input; f = isWater ? f_input * 1.33 : f_input; }
+        if (source === 'distRange') { L = document.getElementById('distInput').value * 1000; document.getElementById('distBox').value = (L/1000).toFixed(1); }
+
+        // 逆算ロジック (パンフォーカス H=L 前提)
         if (source === 'distRange' || source === 'distBox') {
              if (!locks.F && locks.FL) {
                 F = Math.pow(f, 2) / ((L - f) * coc);
-                document.getElementById('fBox').value = F.toFixed(1);
-                document.getElementById('fInput').value = fStops.reduce((p, c, i) => Math.abs(c - F) < Math.abs(fStops[p] - F) ? i : p, 0);
-             } else if (!locks.FL && locks.F) {
-                f = (coc * F + Math.sqrt(Math.pow(coc * F, 2) + 4 * coc * F * L)) / 2;
-                document.getElementById('flBox').value = Math.round(f);
-                document.getElementById('flInput').value = Math.round(f);
+                document.getElementById('fBox').value = Math.max(1.0, F).toFixed(1);
              }
         }
 
@@ -274,10 +233,11 @@
         document.getElementById('hyperfocal').innerText = (H / 1000).toFixed(2) + "m";
 
         const inf = document.getElementById('infinityIcon'), stat = document.getElementById('statusLabel');
-        if (isPan) { inf.style.display = 'inline'; stat.innerText = langData[currentLang].panActive; stat.style.color = "var(--warning-color)"; }
-        else { inf.style.display = 'none'; stat.innerText = langData[currentLang].ready; stat.style.color = "var(--accent-color)"; }
+        inf.style.display = isPan ? 'inline' : 'none';
+        stat.innerText = isPan ? "PAN-FOCUS ACTIVE" : "READY";
+        stat.style.color = isPan ? "var(--warning-color)" : "var(--accent-color)";
 
-        const vizScale = 100 / 50;
+        const vizScale = 100 / 10; // 水中向けに表示スケールを10mに凝縮
         document.getElementById('subjectMarker').style.left = Math.min(98, (L / 1000 * vizScale)) + "%";
         const barL = (near / 1000 * vizScale), barR = isPan ? 100 : (far / 1000 * vizScale);
         document.getElementById('dofBar').style.left = Math.min(99, barL) + "%";
