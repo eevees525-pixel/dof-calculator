@@ -3,13 +3,12 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DOF & FRAME Pro v9.0</title>
+    <title>DOF & FRAME Pro v10.1</title>
     <style>
         :root {
             --bg-color: #050a0f;
             --card-bg: #111a22;
             --accent: #00aaff;
-            --marine: #00ffff;
             --text: #f0f0f0;
             --text-dim: #888;
             --green-grad: linear-gradient(90deg, rgba(76,175,80,0) 0%, rgba(76,175,80,0.8) 20%, rgba(76,175,80,0.8) 80%, rgba(76,175,80,0) 100%);
@@ -24,22 +23,20 @@
 
         .monitor-card { background: #000; border: 2px solid #1a334d; border-radius: 8px; padding: 15px; margin-bottom: 15px; position: relative; }
         
-        /* DOF表示 */
         #dofView { display: block; }
         .viz-container { height: 90px; background: repeating-linear-gradient(90deg, #05101a 0px, #05101a 49px, #1a334d 50px); position: relative; border-radius: 4px; margin: 15px 0; }
         .dof-bar { height: 36px; background: var(--green-grad); position: absolute; top: 27px; transition: 0.3s; }
         .subject-marker { width: 2px; height: 60px; background: #fff; position: absolute; top: 15px; z-index: 10; box-shadow: 0 0 10px var(--accent); }
 
-        /* FRAME表示（改良版） */
         #frameView { display: none; }
-        .frame-container { width: 100%; aspect-ratio: 3 / 2; background: #1a1a1a; position: relative; display: flex; justify-content: center; align-items: center; border-radius: 4px; overflow: hidden; }
-        .sensor-outline { width: 95%; height: 95%; border: 1.5px solid #fff; box-shadow: 0 0 0 1000px rgba(0,0,0,0.6); z-index: 5; pointer-events: none; }
-        .subject-svg { position: absolute; z-index: 2; filter: drop-shadow(0 0 8px rgba(0,170,255,0.6)); transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .frame-container { width: 100%; aspect-ratio: 3 / 2; background: #1a1a1a; position: relative; display: flex; justify-content: center; align-items: center; border-radius: 4px; overflow: hidden; border: 1px solid #333; }
+        .sensor-outline { width: 95%; height: 95%; border: 1.5px solid rgba(255,255,255,0.8); box-shadow: 0 0 0 1000px rgba(0,0,0,0.7); z-index: 5; pointer-events: none; position: absolute; }
+        .subject-ellipse { position: absolute; z-index: 2; border-radius: 50%; transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); }
 
         .res-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .res-item { background: #0a141d; padding: 8px; border-radius: 4px; border-left: 3px solid var(--accent); }
         .res-lab { font-size: 0.6rem; color: var(--text-dim); }
-        .res-val { font-size: 0.9rem; font-weight: bold; }
+        .res-val { font-size: 0.85rem; font-weight: bold; }
 
         .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 10px; border: 1px solid #1a334d; }
         .input-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
@@ -47,8 +44,7 @@
         
         .switch-box { display: flex; align-items: center; gap: 10px; background: #0a141d; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; }
         input[type="range"] { width: 100%; -webkit-appearance: none; background: #1a334d; height: 6px; border-radius: 3px; margin: 10px 0; }
-        
-        #apertureControl { transition: 0.3s; }
+        input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: var(--accent); border-radius: 50%; cursor: pointer; }
     </style>
 </head>
 <body>
@@ -74,8 +70,7 @@
         <div id="frameView">
             <div class="frame-container">
                 <div class="sensor-outline"></div>
-                <svg id="subIcon" class="subject-svg" viewBox="0 0 100 100" width="50%">
-                    </svg>
+                <div id="subEllipse" class="subject-ellipse"></div>
             </div>
             <div class="res-grid">
                 <div class="res-item"><div class="res-lab">FRAME WIDTH</div><div id="fwVal" class="res-val">-</div></div>
@@ -97,3 +92,97 @@
             <label style="font-size:0.8rem">Distance (m)</label>
             <input type="number" id="distBox" class="input-box" value="5.0" step="0.1" oninput="update('distBox')">
         </div>
+        <input type="range" id="distRange" min="0.1" max="30" step="0.1" value="5" oninput="update('distRange')">
+    </div>
+
+    <div class="card" id="apertureControl">
+        <div class="input-row">
+            <label style="font-size:0.8rem">Aperture (f)</label>
+            <input type="number" id="fBox" class="input-box" value="8.0" step="0.1" readonly>
+        </div>
+        <input type="range" id="fRange" min="0" max="16" step="1" value="7" oninput="update('fRange')">
+        <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;">
+            <span>1.4</span><span>2.8</span><span>5.6</span><span>8</span><span>11</span><span>16</span><span>22</span>
+        </div>
+    </div>
+
+    <div class="card">
+        <div class="input-row">
+            <label style="font-size:0.8rem">Focal Length (mm)</label>
+            <input type="number" id="flBox" class="input-box" value="24" oninput="update('flBox')">
+        </div>
+        <input type="range" id="flRange" min="14" max="200" step="1" value="24" oninput="update('flRange')">
+    </div>
+</div>
+
+<script>
+    // 1/3段刻みを含む詳細リスト
+    const fStops = [1.4, 2.0, 2.8, 4.0, 5.6, 6.3, 7.1, 8.0, 9.0, 10, 11, 13, 14, 16, 18, 20, 22];
+
+    function switchTab(type) {
+        document.getElementById('dofView').style.display = type === 'dof' ? 'block' : 'none';
+        document.getElementById('frameView').style.display = type === 'frame' ? 'block' : 'none';
+        document.getElementById('apertureControl').style.display = type === 'dof' ? 'block' : 'none';
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        if (event) event.target.classList.add('active');
+        update();
+    }
+
+    function update(src) {
+        const isWater = document.getElementById('waterMode').checked;
+        const subSize = parseFloat(document.getElementById('subSize').value);
+        let FL = parseFloat(document.getElementById('flBox').value);
+        let L = parseFloat(document.getElementById('distBox').value);
+        
+        // 絞り値の取得
+        const fIdx = document.getElementById('fRange').value;
+        const F = fStops[fIdx];
+        document.getElementById('fBox').value = F;
+
+        if(src === 'distRange') { L = document.getElementById('distRange').value; document.getElementById('distBox').value = L; }
+        if(src === 'flRange') { FL = document.getElementById('flRange').value; document.getElementById('flBox').value = FL; }
+        if(src === 'flBox') { FL = parseFloat(document.getElementById('flBox').value); }
+        if(src === 'distBox') { L = parseFloat(document.getElementById('distBox').value); }
+
+        let f_calc = isWater ? FL * 1.33 : FL;
+        const coc = 0.030;
+        const H = (f_calc**2 / (F * coc)) + f_calc;
+        const distMM = L * 1000;
+        const near = (distMM * (H - f_calc)) / (H + distMM - 2*f_calc);
+        const far = (distMM * (H - f_calc)) / (H - distMM);
+
+        // DOF UI
+        document.getElementById('nearVal').innerText = (near/1000).toFixed(2) + "m";
+        document.getElementById('farVal').innerText = far < 0 ? "∞" : (far/1000).toFixed(2) + "m";
+        const vizScale = 100 / 20;
+        document.getElementById('subjectMarker').style.left = Math.min(100, L * vizScale) + "%";
+        const nPos = (near/1000 * vizScale);
+        const fPos = far < 0 ? 100 : (far/1000 * vizScale);
+        document.getElementById('dofBar').style.left = nPos + "%";
+        document.getElementById('dofBar').style.width = Math.max(0, fPos - nPos) + "%";
+
+        // FRAME UI
+        const beta = f_calc / (distMM - f_calc);
+        const visibleWidth = 36 / beta; 
+        document.getElementById('fwVal').innerText = (visibleWidth/1000).toFixed(2) + "m";
+        document.getElementById('magVal').innerText = "1:" + (1/beta).toFixed(1);
+        
+        const ratio = (subSize * 1000) / visibleWidth;
+        const ellipse = document.getElementById('subEllipse');
+        const displayWidth = Math.min(95, ratio * 95);
+        ellipse.style.width = displayWidth + "%";
+        ellipse.style.aspectRatio = "1.5 / 1";
+        
+        let color = '#00aaff';
+        if (subSize <= 0.1) color = '#ff00ff';
+        else if (subSize <= 1.0) color = '#4caf50';
+        else if (subSize <= 2.0) color = '#ff9800';
+        else if (subSize > 10.0) color = '#1a237e';
+        
+        ellipse.style.backgroundColor = color + "66";
+        ellipse.style.border = `2px solid ${color}`;
+    }
+    update();
+</script>
+</body>
+</html>
