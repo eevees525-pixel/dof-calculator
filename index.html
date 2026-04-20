@@ -3,12 +3,13 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DOF & FRAME Pro v12.0 - Final Edition</title>
+    <title>DOF & FRAME Pro v12.1 - Full Recovery</title>
     <style>
         :root {
             --bg-color: #050a0f;
             --card-bg: #111a22;
             --accent: #00aaff;
+            --lock-accent: #ff9800;
             --text: #f0f0f0;
             --text-dim: #888;
             --green-grad: linear-gradient(90deg, rgba(76,175,80,0) 0%, rgba(76,175,80,0.8) 20%, rgba(76,175,80,0.8) 80%, rgba(76,175,80,0) 100%);
@@ -41,10 +42,10 @@
         .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 10px; border: 1px solid #1a334d; }
         .input-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
         .input-box { background: #000; border: 1px solid #1a334d; color: var(--accent); font-size: 1.1rem; font-weight: bold; text-align: right; padding: 5px; border-radius: 4px; width: 95px; }
-        .input-box.readonly { color: #ff9800; }
+        .input-box.readonly { color: var(--lock-accent); }
         
         .lock-btn { background: #222; border: 1px solid #444; color: #666; border-radius: 4px; font-size: 0.6rem; padding: 4px 8px; cursor: pointer; font-weight: bold; }
-        .lock-btn.active { background: #00334d; border-color: var(--accent); color: var(--accent); }
+        .lock-btn.active { background: #332200; border-color: var(--lock-accent); color: var(--lock-accent); }
 
         .switch-box { display: flex; align-items: center; gap: 10px; background: #0a141d; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; }
         input[type="range"] { width: 100%; -webkit-appearance: none; background: #1a334d; height: 6px; border-radius: 3px; margin: 10px 0; }
@@ -69,7 +70,7 @@
                 <div class="res-item"><div class="res-lab">NEAR LIMIT</div><div id="nearVal" class="res-val">-</div></div>
                 <div class="res-item"><div class="res-lab">FAR LIMIT</div><div id="farVal" class="res-val">-</div></div>
                 <div class="res-item"><div class="res-lab">HYPERFOCAL</div><div id="hyperVal" class="res-val">-</div></div>
-                <div id="panStatus" class="res-item" style="border-color:#ff9800;"><div class="res-lab">STATUS</div><div class="res-val" style="color:#ff9800;">READY</div></div>
+                <div id="panStatus" class="res-item" style="border-color:var(--lock-accent);"><div class="res-lab">STATUS</div><div class="res-val" id="statusLabel">READY</div></div>
             </div>
         </div>
 
@@ -154,7 +155,7 @@
         let F_idx = document.getElementById('fRange').value;
         let F = fStops[F_idx];
 
-        // 同期処理
+        // 各パラメーターの同期
         if(src === 'distRange') { L = document.getElementById('distRange').value; document.getElementById('distBox').value = L; }
         if(src === 'distBox') { L = parseFloat(document.getElementById('distBox').value) || 0.1; document.getElementById('distRange').value = Math.min(100, L); }
         if(src === 'flRange') { FL = document.getElementById('flRange').value; document.getElementById('flBox').value = FL; }
@@ -165,33 +166,41 @@
         const coc = 0.030;
         const distMM = L * 1000;
 
-        // 【復刻】逆算ロジック (パンフォーカス H=L 前提)
-        // Dist(L)が固定で、Focal(FL)を動かしたとき、最適なFを求める
-        if ((src === 'flRange' || src === 'flBox' || src === 'distRange' || src === 'distBox') && locks.Dist && !locks.F) {
-            // H = f^2 / (F * coc) + f  => F = f^2 / ((H-f)*coc)  ここで H=L
+        // 【逆算ロジック：パンフォーカス最適化】
+        // 距離(Dist)がLOCKされている場合、FLを動かしたら最適なFを逆算
+        if (locks.Dist && !locks.F && (src === 'flRange' || src === 'flBox')) {
             if (distMM > f_calc) {
                 let idealF = Math.pow(f_calc, 2) / ((distMM - f_calc) * coc);
-                // リストの中から最も近い（かつ大きな）F値を探す
                 let bestIdx = fStops.findIndex(val => val >= idealF);
                 if (bestIdx === -1) bestIdx = fStops.length - 1;
                 document.getElementById('fRange').value = bestIdx;
                 F = fStops[bestIdx];
             }
         }
+        // Aperture(F)がLOCKされている場合、FLを動かしたらパンフォーカスになる距離(Dist)を逆算
+        else if (locks.F && !locks.Dist && (src === 'flRange' || src === 'flBox')) {
+            let idealDist = (Math.pow(f_calc, 2) / (F * coc)) + f_calc;
+            L = (idealDist / 1000).toFixed(2);
+            document.getElementById('distBox').value = L;
+            document.getElementById('distRange').value = Math.min(100, L);
+        }
+
         document.getElementById('fBox').value = F.toFixed(1);
 
+        // 物理計算
         const H = (Math.pow(f_calc, 2) / (F * coc)) + f_calc;
         const near = (distMM * (H - f_calc)) / (H + distMM - 2*f_calc);
         const far = (distMM * (H - f_calc)) / (H - distMM);
         const isPan = (distMM >= H || far < 0);
 
-        // UI表示
+        // 表示の更新
         document.getElementById('nearVal').innerText = (near/1000).toFixed(2) + "m";
         document.getElementById('farVal').innerText = isPan ? "∞" : (far/1000).toFixed(2) + "m";
         document.getElementById('hyperVal').innerText = (H/1000).toFixed(2) + "m";
-        const stat = document.getElementById('panStatus');
-        stat.querySelector('.res-val').innerText = isPan ? "PAN-FOCUS" : "LIMITED";
-        stat.style.borderColor = isPan ? "#ff9800" : "#00aaff";
+        
+        const label = document.getElementById('statusLabel');
+        label.innerText = isPan ? "PAN-FOCUS ACTIVE" : "LIMITED DOF";
+        label.style.color = isPan ? "var(--lock-accent)" : "var(--accent)";
 
         const vizScale = 100 / 20;
         document.getElementById('subjectMarker').style.left = Math.min(100, L * vizScale) + "%";
@@ -199,7 +208,7 @@
         document.getElementById('dofBar').style.left = Math.min(100, nP) + "%";
         document.getElementById('dofBar').style.width = Math.max(0, Math.min(100-nP, fP-nP)) + "%";
 
-        // FRAME UI
+        // FRAME SIMULATION
         const beta = f_calc / (distMM - f_calc);
         const visibleWidth = 36 / beta; 
         document.getElementById('fwVal').innerText = (visibleWidth/1000).toFixed(2) + "m";
