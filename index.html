@@ -3,212 +3,197 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DOF Monitor Pro v7.0 - Marine Frame</title>
-    
-    <meta name="mobile-web-app-capable" content="yes">
-    <meta name="theme-color" content="#050a0f">
-    <link rel="manifest" href="manifest.json">
-    <link rel="icon" type="image/png" href="icon.png">
-    <link rel="apple-touch-icon" href="icon.png">
-
+    <title>DOF & FRAME Pro v8.0</title>
     <style>
         :root {
             --bg-color: #050a0f;
             --card-bg: #111a22;
-            --accent-color: #00aaff;
-            --marine-color: #00ffff;
-            --text-main: #f0f0f0;
+            --accent: #00aaff;
+            --marine: #00ffff;
+            --text: #f0f0f0;
             --text-dim: #888;
-            --focus-gradient: linear-gradient(90deg, rgba(76,175,80,0) 0%, rgba(76,175,80,0.8) 20%, rgba(76,175,80,0.8) 80%, rgba(76,175,80,0) 100%);
-            --warning-color: #ff9800;
-            --danger-color: #ff4444;
-            --lock-bg: #00334d;
+            --green-grad: linear-gradient(90deg, rgba(76,175,80,0) 0%, rgba(76,175,80,0.8) 20%, rgba(76,175,80,0.8) 80%, rgba(76,175,80,0) 100%);
         }
 
-        body { font-family: 'Segoe UI', Roboto, sans-serif; background-color: var(--bg-color); color: var(--text-main); margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
+        body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text); margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         .container { width: 100%; max-width: 500px; }
 
-        /* モニターセクション */
-        .monitor-card { background: #000; border: 2px solid #1a334d; border-radius: 8px; padding: 12px; margin-bottom: 15px; box-shadow: inset 0 0 20px rgba(0,170,255,0.1); }
-        .monitor-header { display: flex; justify-content: space-between; align-items: center; height: 28px; margin-bottom: 8px; border-bottom: 1px solid #1a334d; }
-        .mode-badge { font-size: 0.65rem; padding: 2px 8px; border-radius: 4px; font-weight: bold; }
-        .mode-air { background: #333; color: #fff; }
-        .mode-water { background: var(--marine-color); color: #000; box-shadow: 0 0 10px var(--marine-color); }
+        /* タブメニュー */
+        .tabs { display: flex; gap: 5px; margin-bottom: 10px; width: 100%; }
+        .tab { flex: 1; padding: 12px; background: #1a2633; border: none; color: var(--text-dim); cursor: pointer; border-radius: 8px 8px 0 0; font-weight: bold; transition: 0.3s; }
+        .tab.active { background: var(--card-bg); color: var(--accent); border-bottom: 2px solid var(--accent); }
+
+        .monitor-card { background: #000; border: 2px solid #1a334d; border-radius: 8px; padding: 15px; margin-bottom: 15px; position: relative; min-height: 200px; }
         
-        /* 深度モニター */
-        .viz-container { height: 60px; background: #05101a; position: relative; border-radius: 4px; margin: 10px 0; overflow: hidden; }
-        .dof-bar { height: 24px; background: var(--focus-gradient); position: absolute; top: 18px; transition: 0.3s; }
-        .subject-marker { width: 2px; height: 100%; background: #fff; position: absolute; top: 0; z-index: 10; box-shadow: 0 0 10px var(--accent-color); }
+        /* DOF表示（旧バージョン風） */
+        #dofView { display: block; }
+        .viz-container { height: 90px; background: repeating-linear-gradient(90deg, #05101a 0px, #05101a 49px, #1a334d 50px); position: relative; border-radius: 4px; margin: 15px 0; }
+        .dof-bar { height: 36px; background: var(--green-grad); position: absolute; top: 27px; transition: 0.3s; }
+        .subject-marker { width: 2px; height: 60px; background: #fff; position: absolute; top: 15px; z-index: 10; box-shadow: 0 0 10px var(--accent); }
 
-        /* フレーミングシミュレーター（新機能） */
-        .frame-sim { height: 120px; background: #111; border: 1px solid #333; position: relative; margin: 10px 0; display: flex; justify-content: center; align-items: center; border-radius: 4px; }
-        .frame-label { position: absolute; top: 5px; left: 5px; font-size: 0.6rem; color: var(--text-dim); }
-        .sensor-outline { border: 1px dashed #555; width: 90%; height: 60%; position: absolute; }
-        .subject-box { background: rgba(0, 170, 255, 0.2); border: 1.5px solid var(--accent-color); transition: 0.3s; display: flex; justify-content: center; align-items: center; font-size: 0.8rem; }
+        /* FRAME表示（2:3長方形） */
+        #frameView { display: none; }
+        .sensor-frame { width: 100%; aspect-ratio: 3 / 2; background: #0a0a0a; border: 1px solid #333; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; }
+        .grid-line { position: absolute; border: 0.5px solid rgba(255,255,255,0.1); width: 100%; height: 100%; pointer-events: none; }
+        .subject-svg { filter: drop-shadow(0 0 5px var(--accent)); transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
-        /* UIパーツ */
-        .grid-results { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
-        .res-box { background: #0a141d; padding: 8px; border-radius: 6px; border-top: 1px solid #1a334d; }
-        .res-lab { font-size: 0.55rem; color: var(--text-dim); }
-        .res-val { font-size: 0.85rem; font-weight: bold; }
-        .danger { color: var(--danger-color) !important; animation: blink 1s infinite; }
-        @keyframes blink { 50% { opacity: 0.5; } }
+        .res-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
+        .res-item { background: #0a141d; padding: 8px; border-radius: 4px; border-left: 3px solid var(--accent); }
+        .res-lab { font-size: 0.6rem; color: var(--text-dim); }
+        .res-val { font-size: 0.9rem; font-weight: bold; }
 
-        .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 12px; border: 1px solid #1a334d; }
-        .control-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 8px; gap: 10px; }
-        .label-group { display: flex; align-items: center; gap: 8px; font-size: 0.8rem; }
-
-        .lock-btn { background: #222; border: 1px solid #444; color: #666; border-radius: 4px; font-size: 0.6rem; padding: 4px 6px; cursor: pointer; }
-        .lock-btn.active { background: var(--lock-bg); border-color: var(--accent-color); color: var(--accent-color); }
-
-        .input-num-box { background: #000; border: 1px solid #1a334d; color: var(--accent-color); font-size: 1.1rem; font-weight: bold; text-align: right; padding: 4px; border-radius: 4px; width: 75px; }
+        .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 10px; border: 1px solid #1a334d; }
+        .input-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .input-box { background: #000; border: 1px solid #1a334d; color: var(--accent); font-size: 1.1rem; font-weight: bold; text-align: right; padding: 5px; border-radius: 4px; width: 80px; }
         
-        .switch-container { display: flex; align-items: center; gap: 10px; background: #0a141d; padding: 10px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #1a334d; }
-        .toggle-switch { width: 40px; height: 20px; -webkit-appearance: none; background: #333; border-radius: 10px; transition: 0.3s; cursor: pointer; position: relative; }
-        .toggle-switch:checked { background: var(--marine-color); }
-        .toggle-switch::before { content: ''; position: absolute; width: 16px; height: 16px; border-radius: 50%; top: 2px; left: 2px; background: #fff; transition: 0.3s; }
-        .toggle-switch:checked::before { left: 22px; }
+        .lock-btn { background: #222; border: 1px solid #444; color: #666; border-radius: 4px; font-size: 0.6rem; padding: 4px 8px; cursor: pointer; }
+        .lock-btn.active { background: #00334d; border-color: var(--accent); color: var(--accent); }
 
-        input[type="range"] { width: 100%; height: 8px; background: #1a334d; border-radius: 4px; -webkit-appearance: none; margin: 10px 0 15px 0; }
-        select { width: 100%; padding: 10px; background: #0a141d; color: #fff; border: 1px solid #1a334d; border-radius: 6px; margin-bottom: 10px; }
+        .switch-box { display: flex; align-items: center; gap: 10px; background: #0a141d; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; }
+        input[type="range"] { width: 100%; -webkit-appearance: none; background: #1a334d; height: 6px; border-radius: 3px; margin: 10px 0; }
     </style>
 </head>
 <body>
 
 <div class="container">
+    <div class="tabs">
+        <button class="tab active" onclick="switchTab('dof')">DOF MONITOR</button>
+        <button class="tab" onclick="switchTab('frame')">FRAME SIM</button>
+    </div>
+
     <div class="monitor-card">
-        <div class="monitor-header">
-            <span id="modeBadge" class="mode-badge mode-air">AIR MODE</span>
-            <div style="display:flex; align-items:center; gap:8px;">
-                <span id="statusLabel" class="status-label" style="font-size: 0.6rem;">READY</span>
+        <div id="dofView">
+            <div class="viz-container">
+                <div id="dofBar" class="dof-bar"></div>
+                <div id="subjectMarker" class="subject-marker"></div>
+            </div>
+            <div class="res-grid">
+                <div class="res-item"><div class="res-lab">NEAR LIMIT</div><div id="nearVal" class="res-val">-</div></div>
+                <div class="res-item"><div class="res-lab">FAR LIMIT</div><div id="farVal" class="res-val">-</div></div>
             </div>
         </div>
 
-        <div class="frame-sim" id="frameArea">
-            <span class="frame-label">FRAME SIMULATION (36x24mm Reference)</span>
-            <div class="sensor-outline"></div>
-            <div id="subjectBox" class="subject-box">🐋</div>
-        </div>
-
-        <div class="viz-container">
-            <div id="dofBar" class="dof-bar"></div>
-            <div id="subjectMarker" class="subject-marker"></div>
-        </div>
-
-        <div class="grid-results">
-            <div class="res-box"><div class="res-lab">NEAR / FAR</div><div id="nearFar" class="res-val">-</div></div>
-            <div class="res-box"><div class="res-lab">MAGNIFICATION (β)</div><div id="magVal" class="res-val">-</div></div>
-            <div class="res-box"><div class="res-lab">FRAME WIDTH (m)</div><div id="frameWidth" class="res-val">-</div></div>
-            <div class="res-box"><div class="res-lab">MOD WARNING</div><div id="modStatus" class="res-val">SAFE</div></div>
+        <div id="frameView">
+            <div class="sensor-frame">
+                <div class="grid-line" style="border-left: 33%; border-right: 33%;"></div>
+                <svg id="subIcon" class="subject-svg" viewBox="0 0 100 100" width="50%">
+                    </svg>
+            </div>
+            <div class="res-grid">
+                <div class="res-item"><div class="res-lab">FRAME WIDTH</div><div id="fwVal" class="res-val">-</div></div>
+                <div class="res-item"><div class="res-lab">MAGNIFICATION</div><div id="magVal" class="res-val">-</div></div>
+            </div>
         </div>
     </div>
 
-    <div class="switch-container">
-        <input type="checkbox" id="waterMode" class="toggle-switch" onchange="update()">
-        <label style="font-size: 0.75rem; font-weight: bold;">UNDERWATER MODE (x1.33)</label>
+    <div class="switch-box">
+        <input type="checkbox" id="waterMode" onchange="update()"> 🌊 UNDERWATER MODE (x1.33)
     </div>
 
     <div class="card">
-        <div class="control-row">
-            <div class="label-group"><label>Min Focus Dist (MOD) m</label></div>
-            <input type="number" id="modBox" class="input-num-box" step="0.01" value="0.28" oninput="update()">
+        <div class="input-row">
+            <label style="font-size:0.8rem">Subject Size (m)</label>
+            <input type="number" id="subSize" class="input-box" value="10.0" step="0.1" oninput="update()">
         </div>
-        <div class="control-row">
-            <div class="label-group"><label>Subject Real Size (m)</label></div>
-            <input type="number" id="subSizeBox" class="input-num-box" step="0.1" value="10.0" oninput="update()">
+        <div class="input-row">
+            <div style="display:flex; gap:5px; align-items:center;">
+                <button id="lockDist" class="lock-btn active" onclick="toggleLock('Dist')">LOCK</button>
+                <label style="font-size:0.8rem">Distance (m)</label>
+            </div>
+            <input type="number" id="distBox" class="input-box" value="5.0" step="0.1" oninput="update('distBox')">
         </div>
+        <input type="range" id="distRange" min="0.1" max="30" step="0.1" value="5" oninput="update('distRange')">
     </div>
 
     <div class="card">
-        <div class="control-row">
-            <div class="label-group"><button class="lock-btn" id="lockF" onclick="toggleLock('F')">LOCK</button><label>Aperture (f)</label></div>
-            <input type="number" id="fBox" class="input-num-box" step="0.1" value="8.0" oninput="update('fBox')">
+        <div class="input-row">
+            <div style="display:flex; gap:5px; align-items:center;">
+                <button id="lockF" class="lock-btn" onclick="toggleLock('F')">LOCK</button>
+                <label style="font-size:0.8rem">Aperture (f)</label>
+            </div>
+            <input type="number" id="fBox" class="input-box" value="8.0" step="0.1" oninput="update('fBox')">
         </div>
-        <input type="range" id="fInput" min="0" max="27" step="1" value="18" oninput="update('fRange')">
+        <input type="range" id="fRange" min="1" max="22" step="0.1" value="8" oninput="update('fRange')">
 
-        <div class="control-row">
-            <div class="label-group"><button class="lock-btn" id="lockFL" onclick="toggleLock('FL')">LOCK</button><label>Focal (mm)</label></div>
-            <input type="number" id="flBox" class="input-num-box" value="14" oninput="update('flBox')">
+        <div class="input-row">
+            <div style="display:flex; gap:5px; align-items:center;">
+                <button id="lockFL" class="lock-btn" onclick="toggleLock('FL')">LOCK</button>
+                <label style="font-size:0.8rem">Focal Length (mm)</label>
+            </div>
+            <input type="number" id="flBox" class="input-box" value="24" oninput="update('flBox')">
         </div>
-        <input type="range" id="flInput" min="8" max="200" step="1" value="14" oninput="update('flRange')">
-
-        <div class="control-row">
-            <div class="label-group"><button class="lock-btn active" id="lockDist" onclick="toggleLock('Dist')">LOCK</button><label>Dist (m)</label></div>
-            <input type="number" id="distBox" class="input-num-box" step="0.1" value="5.0" oninput="update('distBox')">
-        </div>
-        <input type="range" id="distInput" min="0.1" max="30" step="0.1" value="5" oninput="update('distRange')">
+        <input type="range" id="flRange" min="14" max="200" step="1" value="24" oninput="update('flRange')">
     </div>
 </div>
 
 <script>
-    const fStops = [1.0, 1.1, 1.2, 1.4, 1.6, 1.8, 2.0, 2.2, 2.5, 2.8, 3.2, 3.5, 4.0, 4.5, 5.0, 5.6, 6.3, 7.1, 8.0, 9.0, 10, 11, 13, 14, 16, 18, 20, 22];
     let locks = { F: false, FL: false, Dist: true };
+    const icons = {
+        butterfly: '<path fill="url(#grad)" d="M50 45c0-15 20-25 30-15s5 25-10 30c15 5 20 20 10 30s-30 0-30-15-20 25-30 15 5-25 10-30c-15-5-20-20-10-30s30 0 30 15z"/><defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#ff00ff;stop-opacity:1" /><stop offset="100%" style="stop-color:#00aaff;stop-opacity:1" /></linearGradient></defs>',
+        bird: '<path fill="url(#gradB)" d="M20 50c10-20 40-20 50-5 10-5 25 0 25 15-15 0-30 20-50 20-20 0-25-30-25-30z"/><defs><linearGradient id="gradB" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#4caf50;stop-opacity:1" /><stop offset="100%" style="stop-color:#1b5e20;stop-opacity:1" /></linearGradient></defs>',
+        dog: '<path fill="url(#gradD)" d="M30 40c0-10 10-20 20-20s20 10 20 20v20h10l5 15h-45l5-15h5v-20z"/><defs><linearGradient id="gradD" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#ff9800;stop-opacity:1" /><stop offset="100%" style="stop-color:#e65100;stop-opacity:1" /></linearGradient></defs>',
+        dolphin: '<path fill="url(#gradM)" d="M10 60c20-10 40-30 70-20 10 5 15 20 5 25-15-5-30 5-50 15-20 10-25-20-25-20z"/><defs><linearGradient id="gradM" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#00ffff;stop-opacity:1" /><stop offset="100%" style="stop-color:#0066ff;stop-opacity:1" /></linearGradient></defs>',
+        whale: '<path fill="url(#gradW)" d="M5 50c20-20 60-20 85 10 5 15-10 30-40 30-30 0-45-40-45-40zM80 35c5-10 15-10 15 0s-10 15-15 0z"/><defs><linearGradient id="gradW" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#1a237e;stop-opacity:1" /><stop offset="100%" style="stop-color:#0d47a1;stop-opacity:1" /></linearGradient></defs>'
+    };
+
+    function switchTab(type) {
+        document.getElementById('dofView').style.display = type === 'dof' ? 'block' : 'none';
+        document.getElementById('frameView').style.display = type === 'frame' ? 'block' : 'none';
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        event.target.classList.add('active');
+    }
 
     function toggleLock(key) {
         locks[key] = !locks[key];
         document.getElementById('lock' + key).classList.toggle('active', locks[key]);
     }
 
-    function update(source) {
+    function update(src) {
         const isWater = document.getElementById('waterMode').checked;
-        const MOD = parseFloat(document.getElementById('modBox').value) * 1000;
-        const subRealSize = parseFloat(document.getElementById('subSizeBox').value) * 1000;
-        const coc = 0.030; // FF基準
-        
+        const subSize = parseFloat(document.getElementById('subSize').value);
         let F = parseFloat(document.getElementById('fBox').value);
-        let f_input = parseFloat(document.getElementById('flBox').value);
-        let L = parseFloat(document.getElementById('distBox').value) * 1000;
+        let FL = parseFloat(document.getElementById('flBox').value);
+        let L = parseFloat(document.getElementById('distBox').value);
 
-        if (source === 'fRange') { F = fStops[document.getElementById('fInput').value]; document.getElementById('fBox').value = F.toFixed(1); }
-        if (source === 'flRange') { f_input = document.getElementById('flInput').value; document.getElementById('flBox').value = f_input; }
-        if (source === 'distRange') { L = document.getElementById('distInput').value * 1000; document.getElementById('distBox').value = (L/1000).toFixed(1); }
+        if(src === 'distRange') { L = document.getElementById('distRange').value; document.getElementById('distBox').value = L; }
+        if(src === 'fRange') { F = document.getElementById('fRange').value; document.getElementById('fBox').value = F; }
+        if(src === 'flRange') { FL = document.getElementById('flRange').value; document.getElementById('flBox').value = FL; }
 
-        let f_calc = isWater ? f_input * 1.33 : f_input;
+        let f_calc = isWater ? FL * 1.33 : FL;
+        const coc = 0.030;
+        const H = (f_calc**2 / (F * coc)) + f_calc;
+        const distMM = L * 1000;
+        const near = (distMM * (H - f_calc)) / (H + distMM - 2*f_calc);
+        const far = (distMM * (H - f_calc)) / (H - distMM);
 
-        // フレーミング計算
-        // 倍率 β = f / (L - f)
-        const beta = f_calc / (L - f_calc);
-        const sensorWidth = 36; // mm
-        const visibleWidth = sensorWidth / beta; // 撮影範囲の幅 (mm)
-        
-        // UI更新: フレーミング
-        const subBox = document.getElementById('subjectBox');
-        const ratio = (subRealSize / visibleWidth); // 画面に対する被写体の比率
-        const boxSize = Math.min(100, ratio * 90); // 90%を最大表示とする
-        subBox.style.width = boxSize + "%";
-        subBox.style.height = (boxSize * 0.6) + "%";
-        subBox.innerText = subRealSize > 5000 ? "🐋" : "🐬";
+        // DOF UI
+        document.getElementById('nearVal').innerText = (near/1000).toFixed(2) + "m";
+        document.getElementById('farVal').innerText = far < 0 ? "∞" : (far/1000).toFixed(2) + "m";
+        const vizScale = 100 / 20;
+        document.getElementById('subjectMarker').style.left = (L * vizScale) + "%";
+        document.getElementById('dofBar').style.left = (near/1000 * vizScale) + "%";
+        document.getElementById('dofBar').style.width = ((far < 0 ? 20000 : far)/1000 * vizScale - (near/1000 * vizScale)) + "%";
 
-        // UI更新: ワーキングディスタンス警告
-        const isDanger = L < MOD;
-        document.getElementById('modStatus').innerText = isDanger ? "TOO CLOSE!" : "OK";
-        document.getElementById('modStatus').className = isDanger ? "res-val danger" : "res-val";
-        document.getElementById('frameArea').style.borderColor = isDanger ? "var(--danger-color)" : "#333";
-
-        // 深度計算
-        const H = (Math.pow(f_calc, 2) / (F * coc)) + f_calc;
-        const near = (L * (H - f_calc)) / (H + L - (2 * f_calc));
-        const far = (L * (H - f_calc)) / (H - L);
-        
-        document.getElementById('nearFar').innerText = (near/1000).toFixed(2) + " / " + (far > 0 ? (far/1000).toFixed(2) : "∞") + "m";
+        // FRAME UI
+        const beta = f_calc / (distMM - f_calc);
+        const visibleWidth = 36 / beta; 
+        document.getElementById('fwVal').innerText = (visibleWidth/1000).toFixed(2) + "m";
         document.getElementById('magVal').innerText = "1:" + (1/beta).toFixed(1);
-        document.getElementById('frameWidth').innerText = (visibleWidth/1000).toFixed(2) + " m";
-
-        // モード表示
-        const badge = document.getElementById('modeBadge');
-        badge.innerText = isWater ? "UNDERWATER" : "AIR";
-        badge.className = isWater ? "mode-badge mode-water" : "mode-badge mode-air";
-
-        // 深度バー更新
-        const vizScale = 100 / 30; // 30mスケール
-        document.getElementById('subjectMarker').style.left = (L / 1000 * vizScale) + "%";
-        const bL = (near / 1000 * vizScale), bR = (far < 0 ? 100 : far / 1000 * vizScale);
-        document.getElementById('dofBar').style.left = bL + "%";
-        document.getElementById('dofBar').style.width = (bR - bL) + "%";
+        
+        const ratio = (subSize * 1000) / visibleWidth;
+        const iconElem = document.getElementById('subIcon');
+        iconElem.style.width = Math.min(95, ratio * 90) + "%";
+        
+        // Icon Selection
+        let iconKey = 'whale';
+        if (subSize <= 0.1) iconKey = 'butterfly';
+        else if (subSize <= 1.0) iconKey = 'bird';
+        else if (subSize <= 2.0) iconKey = 'dog';
+        else if (subSize <= 10.0) iconKey = 'dolphin';
+        iconElem.innerHTML = icons[iconKey];
     }
-
-    document.getElementById('fInput').max = fStops.length - 1;
     update();
 </script>
 </body>
 </html>
+
