@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DOF & FRAME Pro v12.1 - Full Recovery</title>
+    <title>DOF & FRAME Pro v12.2</title>
     <style>
         :root {
             --bg-color: #050a0f;
@@ -42,7 +42,8 @@
         .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 10px; border: 1px solid #1a334d; }
         .input-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
         .input-box { background: #000; border: 1px solid #1a334d; color: var(--accent); font-size: 1.1rem; font-weight: bold; text-align: right; padding: 5px; border-radius: 4px; width: 95px; }
-        .input-box.readonly { color: var(--lock-accent); }
+        /* LOCKされている項目の文字色をオレンジに変更 */
+        .input-box.locked-style { color: var(--lock-accent); }
         
         .lock-btn { background: #222; border: 1px solid #444; color: #666; border-radius: 4px; font-size: 0.6rem; padding: 4px 8px; cursor: pointer; font-weight: bold; }
         .lock-btn.active { background: #332200; border-color: var(--lock-accent); color: var(--lock-accent); }
@@ -95,12 +96,15 @@
             <label style="font-size:0.8rem">Subject Size (m)</label>
             <input type="number" id="subSize" class="input-box" value="10.0" step="0.1" oninput="update('subBox')">
         </div>
+    </div>
+
+    <div class="card">
         <div class="input-row">
             <div style="display:flex; gap:5px; align-items:center;">
                 <button id="lockDist" class="lock-btn active" onclick="toggleLock('Dist')">LOCK</button>
                 <label style="font-size:0.8rem">Distance (m)</label>
             </div>
-            <input type="number" id="distBox" class="input-box" value="5.0" step="0.1" oninput="update('distBox')">
+            <input type="number" id="distBox" class="input-box locked-style" value="5.0" step="0.1" oninput="update('distBox')">
         </div>
         <input type="range" id="distRange" min="0.1" max="100" step="0.1" value="5" oninput="update('distRange')">
     </div>
@@ -143,8 +147,14 @@
 
     function toggleLock(key) {
         locks[key] = !locks[key];
-        document.getElementById('lock' + key).classList.toggle('active', locks[key]);
-        document.getElementById(key.toLowerCase() + 'Box').classList.toggle('readonly', locks[key]);
+        const btn = document.getElementById('lock' + key);
+        const box = document.getElementById(key.toLowerCase() + 'Box');
+        
+        btn.classList.toggle('active', locks[key]);
+        box.classList.toggle('locked-style', locks[key]);
+        
+        // 絞り(F)だけはリスト選択式のためreadonlyを維持、それ以外は入力可
+        if (key === 'F') box.readOnly = true; 
     }
 
     function update(src) {
@@ -166,8 +176,8 @@
         const coc = 0.030;
         const distMM = L * 1000;
 
-        // 【逆算ロジック：パンフォーカス最適化】
-        // 距離(Dist)がLOCKされている場合、FLを動かしたら最適なFを逆算
+        // 【逆算ロジック】
+        // 1. 距離(Dist) LOCK時：焦点距離を動かしたら最適なFを算出
         if (locks.Dist && !locks.F && (src === 'flRange' || src === 'flBox')) {
             if (distMM > f_calc) {
                 let idealF = Math.pow(f_calc, 2) / ((distMM - f_calc) * coc);
@@ -177,7 +187,7 @@
                 F = fStops[bestIdx];
             }
         }
-        // Aperture(F)がLOCKされている場合、FLを動かしたらパンフォーカスになる距離(Dist)を逆算
+        // 2. 絞り(F) LOCK時：焦点距離を動かしたらパンフォーカスになる距離を算出
         else if (locks.F && !locks.Dist && (src === 'flRange' || src === 'flBox')) {
             let idealDist = (Math.pow(f_calc, 2) / (F * coc)) + f_calc;
             L = (idealDist / 1000).toFixed(2);
@@ -193,7 +203,7 @@
         const far = (distMM * (H - f_calc)) / (H - distMM);
         const isPan = (distMM >= H || far < 0);
 
-        // 表示の更新
+        // UI表示
         document.getElementById('nearVal').innerText = (near/1000).toFixed(2) + "m";
         document.getElementById('farVal').innerText = isPan ? "∞" : (far/1000).toFixed(2) + "m";
         document.getElementById('hyperVal').innerText = (H/1000).toFixed(2) + "m";
