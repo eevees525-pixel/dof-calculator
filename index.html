@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DOF & FRAME Pro v11.0</title>
+    <title>DOF & FRAME Pro v12.0 - Final Edition</title>
     <style>
         :root {
             --bg-color: #050a0f;
@@ -23,17 +23,15 @@
 
         .monitor-card { background: #000; border: 2px solid #1a334d; border-radius: 8px; padding: 15px; margin-bottom: 15px; position: relative; }
         
-        /* DOF表示 */
         #dofView { display: block; }
         .viz-container { height: 90px; background: repeating-linear-gradient(90deg, #05101a 0px, #05101a 49px, #1a334d 50px); position: relative; border-radius: 4px; margin: 15px 0; }
         .dof-bar { height: 36px; background: var(--green-grad); position: absolute; top: 27px; transition: 0.3s; }
         .subject-marker { width: 2px; height: 60px; background: #fff; position: absolute; top: 15px; z-index: 10; box-shadow: 0 0 10px var(--accent); }
 
-        /* FRAME表示 */
         #frameView { display: none; }
         .frame-container { width: 100%; aspect-ratio: 3 / 2; background: #1a1a1a; position: relative; display: flex; justify-content: center; align-items: center; border-radius: 4px; overflow: hidden; border: 1px solid #333; }
         .sensor-outline { width: 95%; height: 95%; border: 1.5px solid rgba(255,255,255,0.8); box-shadow: 0 0 0 1000px rgba(0,0,0,0.7); z-index: 5; pointer-events: none; position: absolute; }
-        .subject-ellipse { position: absolute; z-index: 2; border-radius: 50%; transition: 0.4s cubic-bezier(0.165, 0.84, 0.44, 1); filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); }
+        .subject-ellipse { position: absolute; z-index: 2; border-radius: 50%; transition: 0.4s; filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); }
 
         .res-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .res-item { background: #0a141d; padding: 8px; border-radius: 4px; border-left: 3px solid var(--accent); }
@@ -43,7 +41,11 @@
         .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 10px; border: 1px solid #1a334d; }
         .input-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
         .input-box { background: #000; border: 1px solid #1a334d; color: var(--accent); font-size: 1.1rem; font-weight: bold; text-align: right; padding: 5px; border-radius: 4px; width: 95px; }
+        .input-box.readonly { color: #ff9800; }
         
+        .lock-btn { background: #222; border: 1px solid #444; color: #666; border-radius: 4px; font-size: 0.6rem; padding: 4px 8px; cursor: pointer; font-weight: bold; }
+        .lock-btn.active { background: #00334d; border-color: var(--accent); color: var(--accent); }
+
         .switch-box { display: flex; align-items: center; gap: 10px; background: #0a141d; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; }
         input[type="range"] { width: 100%; -webkit-appearance: none; background: #1a334d; height: 6px; border-radius: 3px; margin: 10px 0; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: var(--accent); border-radius: 50%; cursor: pointer; }
@@ -66,6 +68,8 @@
             <div class="res-grid">
                 <div class="res-item"><div class="res-lab">NEAR LIMIT</div><div id="nearVal" class="res-val">-</div></div>
                 <div class="res-item"><div class="res-lab">FAR LIMIT</div><div id="farVal" class="res-val">-</div></div>
+                <div class="res-item"><div class="res-lab">HYPERFOCAL</div><div id="hyperVal" class="res-val">-</div></div>
+                <div id="panStatus" class="res-item" style="border-color:#ff9800;"><div class="res-lab">STATUS</div><div class="res-val" style="color:#ff9800;">READY</div></div>
             </div>
         </div>
 
@@ -91,40 +95,41 @@
             <input type="number" id="subSize" class="input-box" value="10.0" step="0.1" oninput="update('subBox')">
         </div>
         <div class="input-row">
-            <label style="font-size:0.8rem">Distance (m)</label>
+            <div style="display:flex; gap:5px; align-items:center;">
+                <button id="lockDist" class="lock-btn active" onclick="toggleLock('Dist')">LOCK</button>
+                <label style="font-size:0.8rem">Distance (m)</label>
+            </div>
             <input type="number" id="distBox" class="input-box" value="5.0" step="0.1" oninput="update('distBox')">
         </div>
         <input type="range" id="distRange" min="0.1" max="100" step="0.1" value="5" oninput="update('distRange')">
-        <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;">
-            <span>0.1m</span><span>25m</span><span>50m</span><span>75m</span><span>100m</span>
-        </div>
     </div>
 
     <div class="card" id="apertureControl">
         <div class="input-row">
-            <label style="font-size:0.8rem">Aperture (f)</label>
-            <input type="number" id="fBox" class="input-box" value="8.0" step="0.1" readonly>
+            <div style="display:flex; gap:5px; align-items:center;">
+                <button id="lockF" class="lock-btn" onclick="toggleLock('F')">LOCK</button>
+                <label style="font-size:0.8rem">Aperture (f)</label>
+            </div>
+            <input type="number" id="fBox" class="input-box" value="8.0" readonly>
         </div>
         <input type="range" id="fRange" min="0" max="16" step="1" value="7" oninput="update('fRange')">
-        <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;">
-            <span>1.4</span><span>2.8</span><span>5.6</span><span>8</span><span>11</span><span>16</span><span>22</span>
-        </div>
     </div>
 
     <div class="card">
         <div class="input-row">
-            <label style="font-size:0.8rem">Focal Length (mm)</label>
+            <div style="display:flex; gap:5px; align-items:center;">
+                <button id="lockFL" class="lock-btn" onclick="toggleLock('FL')">LOCK</button>
+                <label style="font-size:0.8rem">Focal Length (mm)</label>
+            </div>
             <input type="number" id="flBox" class="input-box" value="24" step="1" oninput="update('flBox')">
         </div>
         <input type="range" id="flRange" min="14" max="1600" step="1" value="24" oninput="update('flRange')">
-        <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;">
-            <span>14mm</span><span>400mm</span><span>800mm</span><span>1200mm</span><span>1600mm</span>
-        </div>
     </div>
 </div>
 
 <script>
     const fStops = [1.4, 2.0, 2.8, 4.0, 5.6, 6.3, 7.1, 8.0, 9.0, 10, 11, 13, 14, 16, 18, 20, 22];
+    let locks = { F: false, FL: false, Dist: true };
 
     function switchTab(type) {
         document.getElementById('dofView').style.display = type === 'dof' ? 'block' : 'none';
@@ -135,51 +140,73 @@
         update();
     }
 
+    function toggleLock(key) {
+        locks[key] = !locks[key];
+        document.getElementById('lock' + key).classList.toggle('active', locks[key]);
+        document.getElementById(key.toLowerCase() + 'Box').classList.toggle('readonly', locks[key]);
+    }
+
     function update(src) {
         const isWater = document.getElementById('waterMode').checked;
         const subSize = parseFloat(document.getElementById('subSize').value) || 0.1;
         let FL = parseFloat(document.getElementById('flBox').value) || 14;
         let L = parseFloat(document.getElementById('distBox').value) || 0.1;
-        
-        // 絞り値の取得
-        const fIdx = document.getElementById('fRange').value;
-        const F = fStops[fIdx];
-        document.getElementById('fBox').value = F;
+        let F_idx = document.getElementById('fRange').value;
+        let F = fStops[F_idx];
 
-        // スライダーと入力ボックスの同期
+        // 同期処理
         if(src === 'distRange') { L = document.getElementById('distRange').value; document.getElementById('distBox').value = L; }
         if(src === 'distBox') { L = parseFloat(document.getElementById('distBox').value) || 0.1; document.getElementById('distRange').value = Math.min(100, L); }
-        
         if(src === 'flRange') { FL = document.getElementById('flRange').value; document.getElementById('flBox').value = FL; }
         if(src === 'flBox') { FL = parseFloat(document.getElementById('flBox').value) || 14; document.getElementById('flRange').value = Math.min(1600, FL); }
+        if(src === 'fRange') { F = fStops[F_idx]; }
 
-        let f_calc = isWater ? FL * 1.33 : FL;
+        const f_calc = isWater ? FL * 1.33 : FL;
         const coc = 0.030;
-        const H = (f_calc**2 / (F * coc)) + f_calc;
         const distMM = L * 1000;
-        
+
+        // 【復刻】逆算ロジック (パンフォーカス H=L 前提)
+        // Dist(L)が固定で、Focal(FL)を動かしたとき、最適なFを求める
+        if ((src === 'flRange' || src === 'flBox' || src === 'distRange' || src === 'distBox') && locks.Dist && !locks.F) {
+            // H = f^2 / (F * coc) + f  => F = f^2 / ((H-f)*coc)  ここで H=L
+            if (distMM > f_calc) {
+                let idealF = Math.pow(f_calc, 2) / ((distMM - f_calc) * coc);
+                // リストの中から最も近い（かつ大きな）F値を探す
+                let bestIdx = fStops.findIndex(val => val >= idealF);
+                if (bestIdx === -1) bestIdx = fStops.length - 1;
+                document.getElementById('fRange').value = bestIdx;
+                F = fStops[bestIdx];
+            }
+        }
+        document.getElementById('fBox').value = F.toFixed(1);
+
+        const H = (Math.pow(f_calc, 2) / (F * coc)) + f_calc;
         const near = (distMM * (H - f_calc)) / (H + distMM - 2*f_calc);
         const far = (distMM * (H - f_calc)) / (H - distMM);
+        const isPan = (distMM >= H || far < 0);
 
-        // DOF UI更新 (20mスケール。超望遠時はバーが振り切れますが仕様通り)
+        // UI表示
         document.getElementById('nearVal').innerText = (near/1000).toFixed(2) + "m";
-        document.getElementById('farVal').innerText = far < 0 ? "∞" : (far/1000).toFixed(2) + "m";
+        document.getElementById('farVal').innerText = isPan ? "∞" : (far/1000).toFixed(2) + "m";
+        document.getElementById('hyperVal').innerText = (H/1000).toFixed(2) + "m";
+        const stat = document.getElementById('panStatus');
+        stat.querySelector('.res-val').innerText = isPan ? "PAN-FOCUS" : "LIMITED";
+        stat.style.borderColor = isPan ? "#ff9800" : "#00aaff";
+
         const vizScale = 100 / 20;
         document.getElementById('subjectMarker').style.left = Math.min(100, L * vizScale) + "%";
-        const nPos = (near/1000 * vizScale);
-        const fPos = far < 0 ? 100 : (far/1000 * vizScale);
-        document.getElementById('dofBar').style.left = Math.min(100, nPos) + "%";
-        document.getElementById('dofBar').style.width = Math.max(0, Math.min(100 - nPos, fPos - nPos)) + "%";
+        const nP = (near/1000 * vizScale), fP = isPan ? 100 : (far/1000 * vizScale);
+        document.getElementById('dofBar').style.left = Math.min(100, nP) + "%";
+        document.getElementById('dofBar').style.width = Math.max(0, Math.min(100-nP, fP-nP)) + "%";
 
-        // FRAME UI更新
+        // FRAME UI
         const beta = f_calc / (distMM - f_calc);
         const visibleWidth = 36 / beta; 
         document.getElementById('fwVal').innerText = (visibleWidth/1000).toFixed(2) + "m";
         document.getElementById('magVal').innerText = "1:" + (1/beta).toFixed(1);
         
-        const ratio = (subSize * 1000) / visibleWidth;
         const ellipse = document.getElementById('subEllipse');
-        const displayWidth = Math.min(95, ratio * 95);
+        const displayWidth = Math.min(95, (subSize * 1000) / visibleWidth * 95);
         ellipse.style.width = displayWidth + "%";
         ellipse.style.aspectRatio = "1.5 / 1";
         
@@ -188,7 +215,6 @@
         else if (subSize <= 1.0) color = '#4caf50';
         else if (subSize <= 2.0) color = '#ff9800';
         else if (subSize > 10.0) color = '#1a237e';
-        
         ellipse.style.backgroundColor = color + "66";
         ellipse.style.border = `2px solid ${color}`;
     }
