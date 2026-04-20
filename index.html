@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DOF & FRAME Pro v8.0</title>
+    <title>DOF & FRAME Pro v9.0</title>
     <style>
         :root {
             --bg-color: #050a0f;
@@ -18,24 +18,23 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text); margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         .container { width: 100%; max-width: 500px; }
 
-        /* タブメニュー */
         .tabs { display: flex; gap: 5px; margin-bottom: 10px; width: 100%; }
-        .tab { flex: 1; padding: 12px; background: #1a2633; border: none; color: var(--text-dim); cursor: pointer; border-radius: 8px 8px 0 0; font-weight: bold; transition: 0.3s; }
+        .tab { flex: 1; padding: 12px; background: #1a2633; border: none; color: var(--text-dim); cursor: pointer; border-radius: 8px 8px 0 0; font-weight: bold; }
         .tab.active { background: var(--card-bg); color: var(--accent); border-bottom: 2px solid var(--accent); }
 
-        .monitor-card { background: #000; border: 2px solid #1a334d; border-radius: 8px; padding: 15px; margin-bottom: 15px; position: relative; min-height: 200px; }
+        .monitor-card { background: #000; border: 2px solid #1a334d; border-radius: 8px; padding: 15px; margin-bottom: 15px; position: relative; }
         
-        /* DOF表示（旧バージョン風） */
+        /* DOF表示 */
         #dofView { display: block; }
         .viz-container { height: 90px; background: repeating-linear-gradient(90deg, #05101a 0px, #05101a 49px, #1a334d 50px); position: relative; border-radius: 4px; margin: 15px 0; }
         .dof-bar { height: 36px; background: var(--green-grad); position: absolute; top: 27px; transition: 0.3s; }
         .subject-marker { width: 2px; height: 60px; background: #fff; position: absolute; top: 15px; z-index: 10; box-shadow: 0 0 10px var(--accent); }
 
-        /* FRAME表示（2:3長方形） */
+        /* FRAME表示（改良版） */
         #frameView { display: none; }
-        .sensor-frame { width: 100%; aspect-ratio: 3 / 2; background: #0a0a0a; border: 1px solid #333; position: relative; display: flex; justify-content: center; align-items: center; overflow: hidden; }
-        .grid-line { position: absolute; border: 0.5px solid rgba(255,255,255,0.1); width: 100%; height: 100%; pointer-events: none; }
-        .subject-svg { filter: drop-shadow(0 0 5px var(--accent)); transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .frame-container { width: 100%; aspect-ratio: 3 / 2; background: #1a1a1a; position: relative; display: flex; justify-content: center; align-items: center; border-radius: 4px; overflow: hidden; }
+        .sensor-outline { width: 95%; height: 95%; border: 1.5px solid #fff; box-shadow: 0 0 0 1000px rgba(0,0,0,0.6); z-index: 5; pointer-events: none; }
+        .subject-svg { position: absolute; z-index: 2; filter: drop-shadow(0 0 8px rgba(0,170,255,0.6)); transition: 0.5s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
 
         .res-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .res-item { background: #0a141d; padding: 8px; border-radius: 4px; border-left: 3px solid var(--accent); }
@@ -44,13 +43,12 @@
 
         .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 10px; border: 1px solid #1a334d; }
         .input-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-        .input-box { background: #000; border: 1px solid #1a334d; color: var(--accent); font-size: 1.1rem; font-weight: bold; text-align: right; padding: 5px; border-radius: 4px; width: 80px; }
+        .input-box { background: #000; border: 1px solid #1a334d; color: var(--accent); font-size: 1.1rem; font-weight: bold; text-align: right; padding: 5px; border-radius: 4px; width: 85px; }
         
-        .lock-btn { background: #222; border: 1px solid #444; color: #666; border-radius: 4px; font-size: 0.6rem; padding: 4px 8px; cursor: pointer; }
-        .lock-btn.active { background: #00334d; border-color: var(--accent); color: var(--accent); }
-
         .switch-box { display: flex; align-items: center; gap: 10px; background: #0a141d; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; }
         input[type="range"] { width: 100%; -webkit-appearance: none; background: #1a334d; height: 6px; border-radius: 3px; margin: 10px 0; }
+        
+        #apertureControl { transition: 0.3s; }
     </style>
 </head>
 <body>
@@ -74,8 +72,8 @@
         </div>
 
         <div id="frameView">
-            <div class="sensor-frame">
-                <div class="grid-line" style="border-left: 33%; border-right: 33%;"></div>
+            <div class="frame-container">
+                <div class="sensor-outline"></div>
                 <svg id="subIcon" class="subject-svg" viewBox="0 0 100 100" width="50%">
                     </svg>
             </div>
@@ -96,104 +94,6 @@
             <input type="number" id="subSize" class="input-box" value="10.0" step="0.1" oninput="update()">
         </div>
         <div class="input-row">
-            <div style="display:flex; gap:5px; align-items:center;">
-                <button id="lockDist" class="lock-btn active" onclick="toggleLock('Dist')">LOCK</button>
-                <label style="font-size:0.8rem">Distance (m)</label>
-            </div>
+            <label style="font-size:0.8rem">Distance (m)</label>
             <input type="number" id="distBox" class="input-box" value="5.0" step="0.1" oninput="update('distBox')">
         </div>
-        <input type="range" id="distRange" min="0.1" max="30" step="0.1" value="5" oninput="update('distRange')">
-    </div>
-
-    <div class="card">
-        <div class="input-row">
-            <div style="display:flex; gap:5px; align-items:center;">
-                <button id="lockF" class="lock-btn" onclick="toggleLock('F')">LOCK</button>
-                <label style="font-size:0.8rem">Aperture (f)</label>
-            </div>
-            <input type="number" id="fBox" class="input-box" value="8.0" step="0.1" oninput="update('fBox')">
-        </div>
-        <input type="range" id="fRange" min="1" max="22" step="0.1" value="8" oninput="update('fRange')">
-
-        <div class="input-row">
-            <div style="display:flex; gap:5px; align-items:center;">
-                <button id="lockFL" class="lock-btn" onclick="toggleLock('FL')">LOCK</button>
-                <label style="font-size:0.8rem">Focal Length (mm)</label>
-            </div>
-            <input type="number" id="flBox" class="input-box" value="24" oninput="update('flBox')">
-        </div>
-        <input type="range" id="flRange" min="14" max="200" step="1" value="24" oninput="update('flRange')">
-    </div>
-</div>
-
-<script>
-    let locks = { F: false, FL: false, Dist: true };
-    const icons = {
-        butterfly: '<path fill="url(#grad)" d="M50 45c0-15 20-25 30-15s5 25-10 30c15 5 20 20 10 30s-30 0-30-15-20 25-30 15 5-25 10-30c-15-5-20-20-10-30s30 0 30 15z"/><defs><linearGradient id="grad" x1="0%" y1="0%" x2="100%" y2="100%"><stop offset="0%" style="stop-color:#ff00ff;stop-opacity:1" /><stop offset="100%" style="stop-color:#00aaff;stop-opacity:1" /></linearGradient></defs>',
-        bird: '<path fill="url(#gradB)" d="M20 50c10-20 40-20 50-5 10-5 25 0 25 15-15 0-30 20-50 20-20 0-25-30-25-30z"/><defs><linearGradient id="gradB" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#4caf50;stop-opacity:1" /><stop offset="100%" style="stop-color:#1b5e20;stop-opacity:1" /></linearGradient></defs>',
-        dog: '<path fill="url(#gradD)" d="M30 40c0-10 10-20 20-20s20 10 20 20v20h10l5 15h-45l5-15h5v-20z"/><defs><linearGradient id="gradD" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#ff9800;stop-opacity:1" /><stop offset="100%" style="stop-color:#e65100;stop-opacity:1" /></linearGradient></defs>',
-        dolphin: '<path fill="url(#gradM)" d="M10 60c20-10 40-30 70-20 10 5 15 20 5 25-15-5-30 5-50 15-20 10-25-20-25-20z"/><defs><linearGradient id="gradM" x1="0%" y1="0%" x2="100%" y2="0%"><stop offset="0%" style="stop-color:#00ffff;stop-opacity:1" /><stop offset="100%" style="stop-color:#0066ff;stop-opacity:1" /></linearGradient></defs>',
-        whale: '<path fill="url(#gradW)" d="M5 50c20-20 60-20 85 10 5 15-10 30-40 30-30 0-45-40-45-40zM80 35c5-10 15-10 15 0s-10 15-15 0z"/><defs><linearGradient id="gradW" x1="0%" y1="0%" x2="0%" y2="100%"><stop offset="0%" style="stop-color:#1a237e;stop-opacity:1" /><stop offset="100%" style="stop-color:#0d47a1;stop-opacity:1" /></linearGradient></defs>'
-    };
-
-    function switchTab(type) {
-        document.getElementById('dofView').style.display = type === 'dof' ? 'block' : 'none';
-        document.getElementById('frameView').style.display = type === 'frame' ? 'block' : 'none';
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        event.target.classList.add('active');
-    }
-
-    function toggleLock(key) {
-        locks[key] = !locks[key];
-        document.getElementById('lock' + key).classList.toggle('active', locks[key]);
-    }
-
-    function update(src) {
-        const isWater = document.getElementById('waterMode').checked;
-        const subSize = parseFloat(document.getElementById('subSize').value);
-        let F = parseFloat(document.getElementById('fBox').value);
-        let FL = parseFloat(document.getElementById('flBox').value);
-        let L = parseFloat(document.getElementById('distBox').value);
-
-        if(src === 'distRange') { L = document.getElementById('distRange').value; document.getElementById('distBox').value = L; }
-        if(src === 'fRange') { F = document.getElementById('fRange').value; document.getElementById('fBox').value = F; }
-        if(src === 'flRange') { FL = document.getElementById('flRange').value; document.getElementById('flBox').value = FL; }
-
-        let f_calc = isWater ? FL * 1.33 : FL;
-        const coc = 0.030;
-        const H = (f_calc**2 / (F * coc)) + f_calc;
-        const distMM = L * 1000;
-        const near = (distMM * (H - f_calc)) / (H + distMM - 2*f_calc);
-        const far = (distMM * (H - f_calc)) / (H - distMM);
-
-        // DOF UI
-        document.getElementById('nearVal').innerText = (near/1000).toFixed(2) + "m";
-        document.getElementById('farVal').innerText = far < 0 ? "∞" : (far/1000).toFixed(2) + "m";
-        const vizScale = 100 / 20;
-        document.getElementById('subjectMarker').style.left = (L * vizScale) + "%";
-        document.getElementById('dofBar').style.left = (near/1000 * vizScale) + "%";
-        document.getElementById('dofBar').style.width = ((far < 0 ? 20000 : far)/1000 * vizScale - (near/1000 * vizScale)) + "%";
-
-        // FRAME UI
-        const beta = f_calc / (distMM - f_calc);
-        const visibleWidth = 36 / beta; 
-        document.getElementById('fwVal').innerText = (visibleWidth/1000).toFixed(2) + "m";
-        document.getElementById('magVal').innerText = "1:" + (1/beta).toFixed(1);
-        
-        const ratio = (subSize * 1000) / visibleWidth;
-        const iconElem = document.getElementById('subIcon');
-        iconElem.style.width = Math.min(95, ratio * 90) + "%";
-        
-        // Icon Selection
-        let iconKey = 'whale';
-        if (subSize <= 0.1) iconKey = 'butterfly';
-        else if (subSize <= 1.0) iconKey = 'bird';
-        else if (subSize <= 2.0) iconKey = 'dog';
-        else if (subSize <= 10.0) iconKey = 'dolphin';
-        iconElem.innerHTML = icons[iconKey];
-    }
-    update();
-</script>
-</body>
-</html>
-
