@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DOF & FRAME Pro v12.2</title>
+    <title>DOF & FRAME Pro v12.3</title>
     <style>
         :root {
             --bg-color: #050a0f;
@@ -42,7 +42,6 @@
         .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 10px; border: 1px solid #1a334d; }
         .input-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
         .input-box { background: #000; border: 1px solid #1a334d; color: var(--accent); font-size: 1.1rem; font-weight: bold; text-align: right; padding: 5px; border-radius: 4px; width: 95px; }
-        /* LOCKされている項目の文字色をオレンジに変更 */
         .input-box.locked-style { color: var(--lock-accent); }
         
         .lock-btn { background: #222; border: 1px solid #444; color: #666; border-radius: 4px; font-size: 0.6rem; padding: 4px 8px; cursor: pointer; font-weight: bold; }
@@ -57,8 +56,8 @@
 
 <div class="container">
     <div class="tabs">
-        <button class="tab active" onclick="switchTab('dof')">DOF MONITOR</button>
-        <button class="tab" onclick="switchTab('frame')">FRAME SIM</button>
+        <button id="tabDof" class="tab active" onclick="switchTab('dof')">DOF MONITOR</button>
+        <button id="tabFrame" class="tab" onclick="switchTab('frame')">FRAME SIM</button>
     </div>
 
     <div class="monitor-card">
@@ -88,7 +87,7 @@
     </div>
 
     <div class="switch-box">
-        <input type="checkbox" id="waterMode" onchange="update()"> 🌊 UNDERWATER MODE (x1.33)
+        <input type="checkbox" id="waterMode" onchange="update('mode')"> 🌊 UNDERWATER MODE (x1.33)
     </div>
 
     <div class="card">
@@ -101,10 +100,10 @@
     <div class="card">
         <div class="input-row">
             <div style="display:flex; gap:5px; align-items:center;">
-                <button id="lockDist" class="lock-btn active" onclick="toggleLock('Dist')">LOCK</button>
+                <button id="lockDist" class="lock-btn" onclick="toggleLock('Dist')">LOCK</button>
                 <label style="font-size:0.8rem">Distance (m)</label>
             </div>
-            <input type="number" id="distBox" class="input-box locked-style" value="5.0" step="0.1" oninput="update('distBox')">
+            <input type="number" id="distBox" class="input-box" value="5.0" step="0.1" oninput="update('distBox')">
         </div>
         <input type="range" id="distRange" min="0.1" max="100" step="0.1" value="5" oninput="update('distRange')">
     </div>
@@ -134,50 +133,49 @@
 
 <script>
     const fStops = [1.4, 2.0, 2.8, 4.0, 5.6, 6.3, 7.1, 8.0, 9.0, 10, 11, 13, 14, 16, 18, 20, 22];
-    let locks = { F: false, FL: false, Dist: true };
+    let locks = { F: false, FL: false, Dist: false };
 
     function switchTab(type) {
         document.getElementById('dofView').style.display = type === 'dof' ? 'block' : 'none';
         document.getElementById('frameView').style.display = type === 'frame' ? 'block' : 'none';
         document.getElementById('apertureControl').style.display = type === 'dof' ? 'block' : 'none';
-        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
-        if (event && event.target) event.target.classList.add('active');
-        update();
+        
+        document.getElementById('tabDof').classList.toggle('active', type === 'dof');
+        document.getElementById('tabFrame').classList.toggle('active', type === 'frame');
+        update('tab');
     }
 
     function toggleLock(key) {
         locks[key] = !locks[key];
         const btn = document.getElementById('lock' + key);
         const box = document.getElementById(key.toLowerCase() + 'Box');
-        
         btn.classList.toggle('active', locks[key]);
         box.classList.toggle('locked-style', locks[key]);
-        
-        // 絞り(F)だけはリスト選択式のためreadonlyを維持、それ以外は入力可
         if (key === 'F') box.readOnly = true; 
     }
 
     function update(src) {
         const isWater = document.getElementById('waterMode').checked;
         const subSize = parseFloat(document.getElementById('subSize').value) || 0.1;
-        let FL = parseFloat(document.getElementById('flBox').value) || 14;
+        
+        let FL = parseFloat(document.getElementById('flBox').value) || 24;
         let L = parseFloat(document.getElementById('distBox').value) || 0.1;
         let F_idx = document.getElementById('fRange').value;
         let F = fStops[F_idx];
 
-        // 各パラメーターの同期
+        // 1. スライダー・入力ボックスの独立同期（他の変数に影響を与えない）
         if(src === 'distRange') { L = document.getElementById('distRange').value; document.getElementById('distBox').value = L; }
         if(src === 'distBox') { L = parseFloat(document.getElementById('distBox').value) || 0.1; document.getElementById('distRange').value = Math.min(100, L); }
         if(src === 'flRange') { FL = document.getElementById('flRange').value; document.getElementById('flBox').value = FL; }
         if(src === 'flBox') { FL = parseFloat(document.getElementById('flBox').value) || 14; document.getElementById('flRange').value = Math.min(1600, FL); }
-        if(src === 'fRange') { F = fStops[F_idx]; }
+        if(src === 'fRange') { F = fStops[F_idx]; document.getElementById('fBox').value = F.toFixed(1); }
 
         const f_calc = isWater ? FL * 1.33 : FL;
         const coc = 0.030;
         const distMM = L * 1000;
 
-        // 【逆算ロジック】
-        // 1. 距離(Dist) LOCK時：焦点距離を動かしたら最適なFを算出
+        // 2. LOCKされている時のみ逆算ロジックを動かす
+        // 距離(Dist) LOCK時：焦点距離(FL)を動かしたら最適な絞り(F)を算出
         if (locks.Dist && !locks.F && (src === 'flRange' || src === 'flBox')) {
             if (distMM > f_calc) {
                 let idealF = Math.pow(f_calc, 2) / ((distMM - f_calc) * coc);
@@ -185,9 +183,10 @@
                 if (bestIdx === -1) bestIdx = fStops.length - 1;
                 document.getElementById('fRange').value = bestIdx;
                 F = fStops[bestIdx];
+                document.getElementById('fBox').value = F.toFixed(1);
             }
         }
-        // 2. 絞り(F) LOCK時：焦点距離を動かしたらパンフォーカスになる距離を算出
+        // 絞り(F) LOCK時：焦点距離(FL)を動かしたら最適な距離(Dist)を算出
         else if (locks.F && !locks.Dist && (src === 'flRange' || src === 'flBox')) {
             let idealDist = (Math.pow(f_calc, 2) / (F * coc)) + f_calc;
             L = (idealDist / 1000).toFixed(2);
@@ -195,15 +194,12 @@
             document.getElementById('distRange').value = Math.min(100, L);
         }
 
-        document.getElementById('fBox').value = F.toFixed(1);
-
-        // 物理計算
+        // 3. 計算と描画
         const H = (Math.pow(f_calc, 2) / (F * coc)) + f_calc;
         const near = (distMM * (H - f_calc)) / (H + distMM - 2*f_calc);
         const far = (distMM * (H - f_calc)) / (H - distMM);
         const isPan = (distMM >= H || far < 0);
 
-        // UI表示
         document.getElementById('nearVal').innerText = (near/1000).toFixed(2) + "m";
         document.getElementById('farVal').innerText = isPan ? "∞" : (far/1000).toFixed(2) + "m";
         document.getElementById('hyperVal').innerText = (H/1000).toFixed(2) + "m";
@@ -218,7 +214,6 @@
         document.getElementById('dofBar').style.left = Math.min(100, nP) + "%";
         document.getElementById('dofBar').style.width = Math.max(0, Math.min(100-nP, fP-nP)) + "%";
 
-        // FRAME SIMULATION
         const beta = f_calc / (distMM - f_calc);
         const visibleWidth = 36 / beta; 
         document.getElementById('fwVal').innerText = (visibleWidth/1000).toFixed(2) + "m";
@@ -237,7 +232,8 @@
         ellipse.style.backgroundColor = color + "66";
         ellipse.style.border = `2px solid ${color}`;
     }
-    update();
+    // 初期化
+    update('init');
 </script>
 </body>
 </html>
