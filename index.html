@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DOF & FRAME & EXP Pro v14.0</title>
+    <title>DOF & FRAME & EXP Pro v15.0</title>
     <style>
         :root { --bg-color: #050a0f; --card-bg: #111a22; --accent: #00aaff; --lock-accent: #ff9800; --text: #f0f0f0; --text-dim: #888; --green-grad: linear-gradient(90deg, rgba(76,175,80,0) 0%, rgba(76,175,80,0.8) 20%, rgba(76,175,80,0.8) 80%, rgba(76,175,80,0) 100%); }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text); margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -12,8 +12,8 @@
         .tab { flex: 1; padding: 12px; background: #1a2633; border: none; color: var(--text-dim); cursor: pointer; border-radius: 8px 8px 0 0; font-weight: bold; font-size: 0.75rem; text-align: center; }
         .tab.active { background: var(--card-bg); color: var(--accent); border-bottom: 2px solid var(--accent); }
         .monitor-card { background: #000; border: 2px solid #1a334d; border-radius: 8px; padding: 15px; margin-bottom: 15px; position: relative; }
-        #dofView, #frameView, #expView { display: none; }
-        #dofView.active, #frameView.active, #expView.active { display: block; }
+        #dofView { display: block; }
+        #frameView, #expView { display: none; }
         .viz-container { height: 90px; background: repeating-linear-gradient(90deg, #05101a 0px, #05101a 49px, #1a334d 50px); position: relative; border-radius: 4px; margin: 15px 0; }
         .dof-bar { height: 36px; background: var(--green-grad); position: absolute; top: 27px; transition: 0.3s; }
         .subject-marker { width: 2px; height: 60px; background: #fff; position: absolute; top: 15px; z-index: 10; box-shadow: 0 0 10px var(--accent); }
@@ -33,9 +33,10 @@
         .switch-box { display: flex; align-items: center; gap: 10px; background: #0a141d; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; }
         input[type="range"] { width: 100%; -webkit-appearance: none; background: #1a334d; height: 6px; border-radius: 3px; margin: 10px 0; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: var(--accent); border-radius: 50%; cursor: pointer; }
+        input[type="range"]:disabled { opacity: 0.3; cursor: not-allowed; }
         select { background: #000; color: var(--accent); border: 1px solid #1a334d; padding: 5px; border-radius: 4px; outline: none; font-weight: bold; }
-        .radio-group label { margin-right: 10px; cursor: pointer; }
-        .radio-group input[type="radio"] { accent-color: var(--lock-accent); }
+        .radio-group label { display: block; margin-bottom: 8px; cursor: pointer; font-size: 0.8rem; }
+        .radio-group input[type="radio"] { accent-color: var(--lock-accent); margin-right: 8px; }
     </style>
 </head>
 <body>
@@ -48,7 +49,7 @@
     </div>
 
     <div class="monitor-card">
-        <div id="dofView" class="active">
+        <div id="dofView">
             <div class="viz-container"><div id="dofBar" class="dof-bar"></div><div id="subjectMarker" class="subject-marker"></div></div>
             <div class="res-grid">
                 <div class="res-item"><div class="res-lab">NEAR LIMIT</div><div id="nearVal" class="res-val">-</div></div>
@@ -109,7 +110,7 @@
 
     <div id="dofControls">
         <div class="card">
-            <div class="input-row"><label style="font-size:0.8rem">Subject Size (m)</label><input type="number" id="subSize" class="input-box" value="10.0" step="0.1" oninput="update('subBox')"></div>
+            <div class="input-row"><label style="font-size:0.8rem">Subject Size (m)</label><input type="number" id="subSize" class="input-box" value="0.1" step="0.01" oninput="update('subBox')"></div>
         </div>
         <div class="card">
             <div class="input-row">
@@ -132,9 +133,9 @@
     <div class="card" id="focalControl">
         <div class="input-row">
             <div style="display:flex; gap:5px; align-items:center;"><button id="lockFL" class="lock-btn" onclick="toggleLock('FL')">LOCK</button><label style="font-size:0.8rem">Focal Length (mm)</label></div>
-            <input type="number" id="flBox" class="input-box" value="24" step="1" oninput="update('flBox')">
+            <input type="number" id="flBox" class="input-box" value="150" step="1" oninput="update('flBox')">
         </div>
-        <input type="range" id="flRange" min="14" max="1600" step="1" value="24" oninput="update('flRange')">
+        <input type="range" id="flRange" min="14" max="1600" step="1" value="150" oninput="update('flRange')">
         <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;"><span>14mm</span><span>1600mm</span></div>
     </div>
 
@@ -144,11 +145,10 @@
                 <input type="checkbox" id="lockEvMode" onchange="toggleLockEv()" style="margin-right:10px;">
                 <label style="font-size:0.9rem; font-weight:bold; color:var(--lock-accent);">🔒 LOCK BRIGHTNESS (EV)</label>
             </div>
-            <div id="autoTargetDiv" class="radio-group" style="display:none; font-size:0.75rem; color:var(--text); background:#05101a; padding:8px; border-radius:4px;">
-                <div style="margin-bottom:5px; color:var(--text-dim);">Auto-Adjust Target:</div>
-                <label><input type="radio" name="autoTarget" value="ISO" checked onchange="update('evTarget')"> ISO (A/S Mode)</label>
-                <label><input type="radio" name="autoTarget" value="SS" onchange="update('evTarget')"> SS</label>
-                <label><input type="radio" name="autoTarget" value="F" onchange="update('evTarget')"> F-stop</label>
+            <div id="autoTargetDiv" class="radio-group" style="display:none; background:#05101a; padding:12px; border-radius:4px; border: 1px solid #1a334d;">
+                <label><input type="radio" name="autoTarget" value="ISO" checked onchange="update('evTarget')"> Auto ISO (Calculates ISO)</label>
+                <label><input type="radio" name="autoTarget" value="SS" onchange="update('evTarget')"> Auto SS (Calculates Shutter Speed)</label>
+                <label><input type="radio" name="autoTarget" value="F" onchange="update('evTarget')"> Auto F (Calculates Aperture)</label>
             </div>
         </div>
         
@@ -197,8 +197,9 @@
 
     function switchTab(type) {
         currentTab = type;
-        document.querySelectorAll('.monitor-card > div').forEach(el => el.classList.remove('active'));
-        document.getElementById(type + 'View').classList.add('active');
+        document.getElementById('dofView').style.display = type === 'dof' ? 'block' : 'none';
+        document.getElementById('frameView').style.display = type === 'frame' ? 'block' : 'none';
+        document.getElementById('expView').style.display = type === 'exposure' ? 'block' : 'none';
         
         document.getElementById('dofControls').style.display = (type === 'dof' || type === 'frame') ? 'block' : 'none';
         document.getElementById('focalControl').style.display = (type === 'dof' || type === 'frame') ? 'block' : 'none';
@@ -212,8 +213,10 @@
 
     function toggleLock(key) {
         locks[key] = !locks[key];
-        document.getElementById('lock' + key).classList.toggle('active', locks[key]);
-        document.getElementById(key.toLowerCase() + 'Box').classList.toggle('locked-style', locks[key]);
+        const btn = document.getElementById('lock' + key);
+        const box = document.getElementById(key.toLowerCase() + 'Box');
+        btn.classList.toggle('active', locks[key]);
+        box.classList.toggle('locked-style', locks[key]);
         if (key === 'F') document.getElementById('fBox').readOnly = true; 
     }
 
@@ -234,14 +237,14 @@
     function update(src) {
         const isWater = document.getElementById('waterMode').checked;
         const subSize = parseFloat(document.getElementById('subSize').value) || 0.1;
-        const cropFactor = parseFloat(document.getElementById('sensorSize').value);
-        const resolution = parseFloat(document.getElementById('resolution').value);
+        const cropFactor = parseFloat(document.getElementById('sensorSize').value) || 1.0;
+        const resolution = parseFloat(document.getElementById('resolution').value) || 24;
         
-        let FL = parseFloat(document.getElementById('flBox').value) || 24;
-        let L = parseFloat(document.getElementById('distBox').value) || 0.1;
+        let FL = parseFloat(document.getElementById('flBox').value) || 150;
+        let L = parseFloat(document.getElementById('distBox').value) || 5.0;
         let F_idx = parseInt(document.getElementById('fRange').value);
         let F = fStops[F_idx];
-        let targetEV = parseFloat(document.getElementById('evRange').value);
+        let targetEV = parseFloat(document.getElementById('evRange').value) || 13;
         let ssIdx = parseInt(document.getElementById('ssRange').value);
         let isoIdx = parseInt(document.getElementById('isoRange').value);
 
@@ -253,17 +256,20 @@
         if(src === 'evRange') { targetEV = parseFloat(document.getElementById('evRange').value); document.getElementById('evBox').value = targetEV.toFixed(1); }
         if(src === 'evBox') { targetEV = parseFloat(document.getElementById('evBox').value) || 0; document.getElementById('evRange').value = Math.max(-5, Math.min(20, targetEV)); }
 
-        // 光学計算：センサーサイズと画素数による許容錯乱円(CoC)の変動
         const f_calc = isWater ? FL * 1.33 : FL;
         const coc = (0.030 / cropFactor) * Math.sqrt(24 / resolution);
         const distMM = L * 1000;
 
-        // 露出計算：Auto-Adjust
+        document.getElementById('isoRange').disabled = false;
+        document.getElementById('ssRange').disabled = false;
+        document.getElementById('fRange').disabled = false;
+
         if (currentTab === 'exposure' && isLockEv) {
             const autoTarget = document.querySelector('input[name="autoTarget"]:checked').value;
             
             if (autoTarget === 'ISO') {
-                if (src === 'fRange' || src === 'ssRange' || src === 'evRange' || src === 'evBox' || src === 'lockEv') {
+                document.getElementById('isoRange').disabled = true;
+                if (src !== 'isoRange') {
                     const SS_cur = shutterSpeeds[ssIdx].v;
                     let idealISO = (F * F * 100) / (SS_cur * Math.pow(2, targetEV));
                     let bestIdx = 0; let minDiff = Infinity;
@@ -274,7 +280,8 @@
                     isoIdx = bestIdx; document.getElementById('isoRange').value = isoIdx;
                 }
             } else if (autoTarget === 'SS') {
-                if (src === 'fRange' || src === 'isoRange' || src === 'evRange' || src === 'evBox' || src === 'lockEv') {
+                document.getElementById('ssRange').disabled = true;
+                if (src !== 'ssRange') {
                     const ISO_cur = isoValues[isoIdx];
                     let idealST = (F * F) / (Math.pow(2, targetEV) * (ISO_cur / 100));
                     let bestIdx = 0; let minDiff = Infinity;
@@ -285,7 +292,8 @@
                     ssIdx = bestIdx; document.getElementById('ssRange').value = ssIdx;
                 }
             } else if (autoTarget === 'F') {
-                if (src === 'ssRange' || src === 'isoRange' || src === 'evRange' || src === 'evBox' || src === 'lockEv') {
+                document.getElementById('fRange').disabled = true;
+                if (src !== 'fRange') {
                     const SS_cur = shutterSpeeds[ssIdx].v;
                     const ISO_cur = isoValues[isoIdx];
                     let idealF = Math.sqrt(SS_cur * Math.pow(2, targetEV) * (ISO_cur / 100));
@@ -350,7 +358,6 @@
         document.getElementById('dofBar').style.left = Math.min(100, nP) + "%";
         document.getElementById('dofBar').style.width = Math.max(0, Math.min(100-nP, fP-nP)) + "%";
 
-        // FRAME計算：クロップファクターを反映
         const safeDist = Math.max(distMM, f_calc + 1);
         const beta = f_calc / (safeDist - f_calc);
         const visibleWidth = (36 / cropFactor) / beta; 
