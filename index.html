@@ -3,32 +3,23 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DOF & FRAME & EXP Pro v13.1</title>
+    <title>DOF & FRAME & EXP Pro v14.0</title>
     <style>
-        :root {
-            --bg-color: #050a0f;
-            --card-bg: #111a22;
-            --accent: #00aaff;
-            --lock-accent: #ff9800;
-            --text: #f0f0f0;
-            --text-dim: #888;
-            --green-grad: linear-gradient(90deg, rgba(76,175,80,0) 0%, rgba(76,175,80,0.8) 20%, rgba(76,175,80,0.8) 80%, rgba(76,175,80,0) 100%);
-        }
+        :root { --bg-color: #050a0f; --card-bg: #111a22; --accent: #00aaff; --lock-accent: #ff9800; --text: #f0f0f0; --text-dim: #888; --green-grad: linear-gradient(90deg, rgba(76,175,80,0) 0%, rgba(76,175,80,0.8) 20%, rgba(76,175,80,0.8) 80%, rgba(76,175,80,0) 100%); }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text); margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         .container { width: 100%; max-width: 500px; }
         .tabs { display: flex; gap: 5px; margin-bottom: 10px; width: 100%; }
         .tab { flex: 1; padding: 12px; background: #1a2633; border: none; color: var(--text-dim); cursor: pointer; border-radius: 8px 8px 0 0; font-weight: bold; font-size: 0.75rem; text-align: center; }
         .tab.active { background: var(--card-bg); color: var(--accent); border-bottom: 2px solid var(--accent); }
         .monitor-card { background: #000; border: 2px solid #1a334d; border-radius: 8px; padding: 15px; margin-bottom: 15px; position: relative; }
-        #dofView { display: block; }
+        #dofView, #frameView, #expView { display: none; }
+        #dofView.active, #frameView.active, #expView.active { display: block; }
         .viz-container { height: 90px; background: repeating-linear-gradient(90deg, #05101a 0px, #05101a 49px, #1a334d 50px); position: relative; border-radius: 4px; margin: 15px 0; }
         .dof-bar { height: 36px; background: var(--green-grad); position: absolute; top: 27px; transition: 0.3s; }
         .subject-marker { width: 2px; height: 60px; background: #fff; position: absolute; top: 15px; z-index: 10; box-shadow: 0 0 10px var(--accent); }
-        #frameView { display: none; }
         .frame-container { width: 100%; aspect-ratio: 3 / 2; background: #1a1a1a; position: relative; overflow: hidden; border: 1px solid #333; border-radius: 4px; }
         .sensor-outline { width: 95%; height: 95%; border: 1.5px solid rgba(255,255,255,0.8); box-shadow: 0 0 0 1000px rgba(0,0,0,0.7); z-index: 5; pointer-events: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
         .subject-ellipse { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2; border-radius: 50%; transition: width 0.15s ease-out, background-color 0.3s; filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); }
-        #expView { display: none; }
         .res-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .res-item { background: #0a141d; padding: 8px; border-radius: 4px; border-left: 3px solid var(--accent); }
         .res-lab { font-size: 0.6rem; color: var(--text-dim); }
@@ -42,17 +33,22 @@
         .switch-box { display: flex; align-items: center; gap: 10px; background: #0a141d; padding: 10px; border-radius: 8px; margin-bottom: 10px; font-size: 0.8rem; }
         input[type="range"] { width: 100%; -webkit-appearance: none; background: #1a334d; height: 6px; border-radius: 3px; margin: 10px 0; }
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: var(--accent); border-radius: 50%; cursor: pointer; }
+        select { background: #000; color: var(--accent); border: 1px solid #1a334d; padding: 5px; border-radius: 4px; outline: none; font-weight: bold; }
+        .radio-group label { margin-right: 10px; cursor: pointer; }
+        .radio-group input[type="radio"] { accent-color: var(--lock-accent); }
     </style>
 </head>
 <body>
+
 <div class="container">
     <div class="tabs">
         <button id="tabDof" class="tab active" onclick="switchTab('dof')">DOF</button>
         <button id="tabFrame" class="tab" onclick="switchTab('frame')">FRAME</button>
         <button id="tabExposure" class="tab" onclick="switchTab('exposure')">EXPOSURE</button>
     </div>
+
     <div class="monitor-card">
-        <div id="dofView">
+        <div id="dofView" class="active">
             <div class="viz-container"><div id="dofBar" class="dof-bar"></div><div id="subjectMarker" class="subject-marker"></div></div>
             <div class="res-grid">
                 <div class="res-item"><div class="res-lab">NEAR LIMIT</div><div id="nearVal" class="res-val">-</div></div>
@@ -61,16 +57,18 @@
                 <div id="panStatus" class="res-item" style="border-color:var(--lock-accent);"><div class="res-lab">STATUS</div><div class="res-val" id="statusLabel">READY</div></div>
             </div>
         </div>
+
         <div id="frameView">
             <div class="frame-container"><div class="sensor-outline"></div><div id="subEllipse" class="subject-ellipse"></div></div>
             <div class="res-grid">
-                <div class="res-item"><div class="res-lab">FRAME WIDTH</div><div id="fwVal" class="res-val">-</div></div>
+                <div class="res-item"><div class="res-lab">VISIBLE WIDTH</div><div id="fwVal" class="res-val">-</div></div>
                 <div class="res-item"><div class="res-lab">MAGNIFICATION</div><div id="magVal" class="res-val">-</div></div>
             </div>
         </div>
+
         <div id="expView">
             <div style="text-align:center; padding:10px 0;">
-                <div style="font-size:0.6rem; color:var(--text-dim); letter-spacing:1px;">CURRENT EV (ISO100 REFERENCE)</div>
+                <div style="font-size:0.6rem; color:var(--text-dim); letter-spacing:1px;">TARGET EV (ISO100 REF)</div>
                 <div id="evValText" style="font-size:2.6rem; font-weight:bold; color:var(--accent); margin:5px 0;">13.0</div>
                 <div id="expSummary" style="font-size:0.8rem; color:var(--lock-accent); font-weight:bold;">F8.0 | 1/125s | ISO 100</div>
             </div>
@@ -82,9 +80,33 @@
             </div>
         </div>
     </div>
-    <div class="switch-box" id="waterModeContainer">
-        <input type="checkbox" id="waterMode" onchange="update('mode')"> 🌊 UNDERWATER MODE (x1.33)
+
+    <div class="card" id="cameraSettings">
+        <div class="input-row">
+            <label style="font-size:0.8rem">Sensor Size</label>
+            <select id="sensorSize" onchange="update('sensor')">
+                <option value="1.0">Full Frame (35mm)</option>
+                <option value="1.5">APS-C</option>
+                <option value="2.0">Micro Four Thirds</option>
+                <option value="2.7">1-inch</option>
+            </select>
+        </div>
+        <div class="input-row">
+            <label style="font-size:0.8rem">Resolution (Sony α)</label>
+            <select id="resolution" onchange="update('sensor')">
+                <option value="12">12 MP (a7S III)</option>
+                <option value="24" selected>24 MP (a7 III / a9 III)</option>
+                <option value="33">33 MP (a7 IV)</option>
+                <option value="42">42 MP (a7R III)</option>
+                <option value="50">50 MP (a1)</option>
+                <option value="61">61 MP (a7R V)</option>
+            </select>
+        </div>
+        <div class="switch-box" style="margin-top:10px; margin-bottom:0; background:transparent; padding:0;">
+            <input type="checkbox" id="waterMode" onchange="update('mode')"> 🌊 UNDERWATER MODE (x1.33)
+        </div>
     </div>
+
     <div id="dofControls">
         <div class="card">
             <div class="input-row"><label style="font-size:0.8rem">Subject Size (m)</label><input type="number" id="subSize" class="input-box" value="10.0" step="0.1" oninput="update('subBox')"></div>
@@ -95,9 +117,10 @@
                 <input type="number" id="distBox" class="input-box" value="5.0" step="0.1" oninput="update('distBox')">
             </div>
             <input type="range" id="distRange" min="0.1" max="1000" step="1" value="5" oninput="update('distRange')">
-            <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;"><span>0.1m</span><span>250m</span><span>500m</span><span>750m</span><span>1000m</span></div>
+            <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;"><span>0.1m</span><span>1000m</span></div>
         </div>
     </div>
+
     <div class="card" id="apertureControl">
         <div class="input-row">
             <div style="display:flex; gap:5px; align-items:center;"><button id="lockF" class="lock-btn" onclick="toggleLock('F')">LOCK</button><label style="font-size:0.8rem">Aperture (f)</label></div>
@@ -105,33 +128,50 @@
         </div>
         <input type="range" id="fRange" min="0" max="16" step="1" value="7" oninput="update('fRange')">
     </div>
+    
     <div class="card" id="focalControl">
         <div class="input-row">
             <div style="display:flex; gap:5px; align-items:center;"><button id="lockFL" class="lock-btn" onclick="toggleLock('FL')">LOCK</button><label style="font-size:0.8rem">Focal Length (mm)</label></div>
             <input type="number" id="flBox" class="input-box" value="24" step="1" oninput="update('flBox')">
         </div>
         <input type="range" id="flRange" min="14" max="1600" step="1" value="24" oninput="update('flRange')">
-        <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;"><span>14mm</span><span>800mm</span><span>1600mm</span></div>
+        <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;"><span>14mm</span><span>1600mm</span></div>
     </div>
+
     <div id="exposureControls" style="display:none;">
-        <div class="switch-box"><input type="checkbox" id="lockEvMode" onchange="toggleLockEv()"> 🔒 LOCK EXPOSURE (露出固定・連動モード)</div>
+        <div class="card">
+            <div style="display:flex; align-items:center; margin-bottom:10px;">
+                <input type="checkbox" id="lockEvMode" onchange="toggleLockEv()" style="margin-right:10px;">
+                <label style="font-size:0.9rem; font-weight:bold; color:var(--lock-accent);">🔒 LOCK BRIGHTNESS (EV)</label>
+            </div>
+            <div id="autoTargetDiv" class="radio-group" style="display:none; font-size:0.75rem; color:var(--text); background:#05101a; padding:8px; border-radius:4px;">
+                <div style="margin-bottom:5px; color:var(--text-dim);">Auto-Adjust Target:</div>
+                <label><input type="radio" name="autoTarget" value="ISO" checked onchange="update('evTarget')"> ISO (A/S Mode)</label>
+                <label><input type="radio" name="autoTarget" value="SS" onchange="update('evTarget')"> SS</label>
+                <label><input type="radio" name="autoTarget" value="F" onchange="update('evTarget')"> F-stop</label>
+            </div>
+        </div>
+        
         <div class="card">
             <div class="input-row"><label style="font-size:0.8rem">Target Environment (EV)</label><input type="number" id="evBox" class="input-box" value="13.0" step="0.1" oninput="update('evBox')"></div>
             <input type="range" id="evRange" min="-5" max="20" step="0.3333" value="13" oninput="update('evRange')">
-            <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;"><span>-5 (星空)</span><span>0 (夜景)</span><span>7 (室内)</span><span>14 (晴天)</span><span>20 (極輝)</span></div>
+            <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;"><span>-5 (星空)</span><span>14 (晴天)</span></div>
         </div>
+
         <div class="card">
             <div class="input-row"><label style="font-size:0.8rem">Shutter Speed</label><input type="text" id="ssBox" class="input-box" value="1/125" readonly></div>
             <input type="range" id="ssRange" min="0" max="72" step="1" value="18" oninput="update('ssRange')">
-            <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;"><span>1/8000s</span><span>1s</span><span>30s</span><span>32m</span></div>
+            <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;"><span>1/8000s</span><span>32m</span></div>
         </div>
+
         <div class="card">
             <div class="input-row"><label style="font-size:0.8rem">ISO Sensitivity</label><input type="number" id="isoBox" class="input-box" value="100" readonly></div>
             <input type="range" id="isoRange" min="0" max="27" step="1" value="3" oninput="update('isoRange')">
-            <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;"><span>ISO 50</span><span>ISO 100</span><span>ISO 6400</span><span>ISO 102400</span></div>
+            <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;"><span>ISO 50</span><span>ISO 102400</span></div>
         </div>
     </div>
 </div>
+
 <script>
     const fStops = [1.4, 2.0, 2.8, 4.0, 5.6, 6.3, 7.1, 8.0, 9.0, 10, 11, 13, 14, 16, 18, 20, 22];
     const isoValues = [50, 64, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 1250, 1600, 2000, 2500, 3200, 4000, 5000, 6400, 8000, 10000, 12800, 25600, 51200, 102400];
@@ -150,37 +190,36 @@
         {d:"8m(480s)", v:480}, {d:"10m40s", v:640}, {d:"13m20s", v:800}, {d:"16m(960s)", v:960}, {d:"21m20s", v:1280}, {d:"26m40s", v:1600},
         {d:"32m", v:1920}
     ];
+
     let locks = { F: false, FL: false, Dist: false };
     let isLockEv = false;
     let currentTab = 'dof';
 
     function switchTab(type) {
         currentTab = type;
-        document.getElementById('dofView').style.display = type === 'dof' ? 'block' : 'none';
-        document.getElementById('frameView').style.display = type === 'frame' ? 'block' : 'none';
-        document.getElementById('expView').style.display = type === 'exposure' ? 'block' : 'none';
+        document.querySelectorAll('.monitor-card > div').forEach(el => el.classList.remove('active'));
+        document.getElementById(type + 'View').classList.add('active');
+        
         document.getElementById('dofControls').style.display = (type === 'dof' || type === 'frame') ? 'block' : 'none';
         document.getElementById('focalControl').style.display = (type === 'dof' || type === 'frame') ? 'block' : 'none';
-        document.getElementById('waterModeContainer').style.display = (type === 'dof' || type === 'frame') ? 'block' : 'none';
         document.getElementById('apertureControl').style.display = (type === 'dof' || type === 'exposure') ? 'block' : 'none';
         document.getElementById('exposureControls').style.display = type === 'exposure' ? 'block' : 'none';
-        document.getElementById('tabDof').classList.toggle('active', type === 'dof');
-        document.getElementById('tabFrame').classList.toggle('active', type === 'frame');
-        document.getElementById('tabExposure').classList.toggle('active', type === 'exposure');
+        
+        document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
+        document.getElementById('tab' + type.charAt(0).toUpperCase() + type.slice(1)).classList.add('active');
         update('tab');
     }
 
     function toggleLock(key) {
         locks[key] = !locks[key];
-        const btn = document.getElementById('lock' + key);
-        const box = document.getElementById(key.toLowerCase() + 'Box');
-        btn.classList.toggle('active', locks[key]);
-        box.classList.toggle('locked-style', locks[key]);
-        if (key === 'F') box.readOnly = true; 
+        document.getElementById('lock' + key).classList.toggle('active', locks[key]);
+        document.getElementById(key.toLowerCase() + 'Box').classList.toggle('locked-style', locks[key]);
+        if (key === 'F') document.getElementById('fBox').readOnly = true; 
     }
 
     function toggleLockEv() {
         isLockEv = document.getElementById('lockEvMode').checked;
+        document.getElementById('autoTargetDiv').style.display = isLockEv ? 'block' : 'none';
         if (isLockEv) {
             const F = fStops[document.getElementById('fRange').value];
             const SS = shutterSpeeds[document.getElementById('ssRange').value].v; 
@@ -195,6 +234,9 @@
     function update(src) {
         const isWater = document.getElementById('waterMode').checked;
         const subSize = parseFloat(document.getElementById('subSize').value) || 0.1;
+        const cropFactor = parseFloat(document.getElementById('sensorSize').value);
+        const resolution = parseFloat(document.getElementById('resolution').value);
+        
         let FL = parseFloat(document.getElementById('flBox').value) || 24;
         let L = parseFloat(document.getElementById('distBox').value) || 0.1;
         let F_idx = parseInt(document.getElementById('fRange').value);
@@ -211,42 +253,61 @@
         if(src === 'evRange') { targetEV = parseFloat(document.getElementById('evRange').value); document.getElementById('evBox').value = targetEV.toFixed(1); }
         if(src === 'evBox') { targetEV = parseFloat(document.getElementById('evBox').value) || 0; document.getElementById('evRange').value = Math.max(-5, Math.min(20, targetEV)); }
 
+        // 光学計算：センサーサイズと画素数による許容錯乱円(CoC)の変動
         const f_calc = isWater ? FL * 1.33 : FL;
-        const coc = 0.030;
+        const coc = (0.030 / cropFactor) * Math.sqrt(24 / resolution);
         const distMM = L * 1000;
 
+        // 露出計算：Auto-Adjust
         if (currentTab === 'exposure' && isLockEv) {
-            if (src === 'fRange' || src === 'isoRange' || src === 'evRange' || src === 'evBox' || src === 'tab' || src === 'lockEv') {
-                const ISO_cur = isoValues[isoIdx];
-                let idealST = (F * F) / (Math.pow(2, targetEV) * (ISO_cur / 100));
-                let bestSSIdx = 0; let minDiff = Infinity;
-                for (let i = 0; i < shutterSpeeds.length; i++) {
-                    let diff = Math.abs(Math.log2(shutterSpeeds[i].v) - Math.log2(idealST));
-                    if (diff < minDiff) { minDiff = diff; bestSSIdx = i; }
+            const autoTarget = document.querySelector('input[name="autoTarget"]:checked').value;
+            
+            if (autoTarget === 'ISO') {
+                if (src === 'fRange' || src === 'ssRange' || src === 'evRange' || src === 'evBox' || src === 'lockEv') {
+                    const SS_cur = shutterSpeeds[ssIdx].v;
+                    let idealISO = (F * F * 100) / (SS_cur * Math.pow(2, targetEV));
+                    let bestIdx = 0; let minDiff = Infinity;
+                    for (let i = 0; i < isoValues.length; i++) {
+                        let diff = Math.abs(Math.log2(isoValues[i]) - Math.log2(idealISO));
+                        if (diff < minDiff) { minDiff = diff; bestIdx = i; }
+                    }
+                    isoIdx = bestIdx; document.getElementById('isoRange').value = isoIdx;
                 }
-                ssIdx = bestSSIdx; document.getElementById('ssRange').value = ssIdx;
-            } else if (src === 'ssRange') {
-                const SS_cur = shutterSpeeds[ssIdx].v;
-                const ISO_cur = isoValues[isoIdx];
-                let idealF = Math.sqrt(SS_cur * Math.pow(2, targetEV) * (ISO_cur / 100));
-                let bestFIdx = 0; let minDiff = Infinity;
-                for (let i = 0; i < fStops.length; i++) {
-                    let diff = Math.abs(Math.log2(fStops[i]) - Math.log2(idealF));
-                    if (diff < minDiff) { minDiff = diff; bestFIdx = i; }
+            } else if (autoTarget === 'SS') {
+                if (src === 'fRange' || src === 'isoRange' || src === 'evRange' || src === 'evBox' || src === 'lockEv') {
+                    const ISO_cur = isoValues[isoIdx];
+                    let idealST = (F * F) / (Math.pow(2, targetEV) * (ISO_cur / 100));
+                    let bestIdx = 0; let minDiff = Infinity;
+                    for (let i = 0; i < shutterSpeeds.length; i++) {
+                        let diff = Math.abs(Math.log2(shutterSpeeds[i].v) - Math.log2(idealST));
+                        if (diff < minDiff) { minDiff = diff; bestIdx = i; }
+                    }
+                    ssIdx = bestIdx; document.getElementById('ssRange').value = ssIdx;
                 }
-                F_idx = bestFIdx; document.getElementById('fRange').value = F_idx; F = fStops[F_idx];
+            } else if (autoTarget === 'F') {
+                if (src === 'ssRange' || src === 'isoRange' || src === 'evRange' || src === 'evBox' || src === 'lockEv') {
+                    const SS_cur = shutterSpeeds[ssIdx].v;
+                    const ISO_cur = isoValues[isoIdx];
+                    let idealF = Math.sqrt(SS_cur * Math.pow(2, targetEV) * (ISO_cur / 100));
+                    let bestIdx = 0; let minDiff = Infinity;
+                    for (let i = 0; i < fStops.length; i++) {
+                        let diff = Math.abs(Math.log2(fStops[i]) - Math.log2(idealF));
+                        if (diff < minDiff) { minDiff = diff; bestIdx = i; }
+                    }
+                    F_idx = bestIdx; document.getElementById('fRange').value = F_idx; F = fStops[F_idx];
+                }
             }
         }
 
         if (currentTab === 'dof' || currentTab === 'frame') {
-            if (locks.Dist && !locks.F && (src === 'flRange' || src === 'flBox')) {
+            if (locks.Dist && !locks.F && (src === 'flRange' || src === 'flBox' || src === 'sensor')) {
                 if (distMM > f_calc) {
                     let idealF = Math.pow(f_calc, 2) / ((distMM - f_calc) * coc);
                     let bestIdx = fStops.findIndex(val => val >= idealF);
                     if (bestIdx === -1) bestIdx = fStops.length - 1;
                     document.getElementById('fRange').value = bestIdx; F = fStops[bestIdx];
                 }
-            } else if (locks.F && !locks.Dist && (src === 'flRange' || src === 'flBox')) {
+            } else if (locks.F && !locks.Dist && (src === 'flRange' || src === 'flBox' || src === 'sensor')) {
                 let idealDist = (Math.pow(f_calc, 2) / (F * coc)) + f_calc;
                 L = (idealDist / 1000).toFixed(2);
                 document.getElementById('distBox').value = L;
@@ -261,7 +322,7 @@
         document.getElementById('isoBox').value = finalISO;
 
         const currentEV = Math.log2((F * F) / finalSS) - Math.log2(finalISO / 100);
-        document.getElementById('evValText').innerText = currentEV.toFixed(1);
+        document.getElementById('evValText').innerText = targetEV.toFixed(1);
         document.getElementById('expSummary').innerText = `F${F.toFixed(1)} | ${shutterSpeeds[ssIdx].d} | ISO ${finalISO}`;
 
         const diffEV = targetEV - currentEV; 
@@ -279,7 +340,7 @@
         document.getElementById('hyperVal').innerText = (H/1000).toFixed(2) + "m";
         
         const label = document.getElementById('statusLabel');
-        label.innerText = isPan ? "PAN-FOCUS ACTIVE" : "LIMITED DOF";
+        label.innerText = isPan ? "PAN-FOCUS" : "LIMITED DOF";
         label.style.color = isPan ? "var(--lock-accent)" : "var(--accent)";
 
         let maxViz = Math.max(20, L * 1.5);
@@ -289,9 +350,10 @@
         document.getElementById('dofBar').style.left = Math.min(100, nP) + "%";
         document.getElementById('dofBar').style.width = Math.max(0, Math.min(100-nP, fP-nP)) + "%";
 
+        // FRAME計算：クロップファクターを反映
         const safeDist = Math.max(distMM, f_calc + 1);
         const beta = f_calc / (safeDist - f_calc);
-        const visibleWidth = 36 / beta; 
+        const visibleWidth = (36 / cropFactor) / beta; 
         document.getElementById('fwVal').innerText = (visibleWidth/1000).toFixed(2) + "m";
         document.getElementById('magVal').innerText = "1:" + (1/beta).toFixed(1);
         
