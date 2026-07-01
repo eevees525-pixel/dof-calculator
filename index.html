@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DOF & FRAME & EXP Pro v15.0</title>
+    <title>DOF & FRAME & EXP Pro v15.1</title>
     <style>
         :root { --bg-color: #050a0f; --card-bg: #111a22; --accent: #00aaff; --lock-accent: #ff9800; --text: #f0f0f0; --text-dim: #888; --green-grad: linear-gradient(90deg, rgba(76,175,80,0) 0%, rgba(76,175,80,0.8) 20%, rgba(76,175,80,0.8) 80%, rgba(76,175,80,0) 100%); }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text); margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -140,6 +140,13 @@
     </div>
 
     <div id="exposureControls" style="display:none;">
+        
+        <div class="card">
+            <div class="input-row"><label style="font-size:0.8rem; font-weight:bold; color:var(--accent);">Target Environment (EV)</label><input type="number" id="evBox" class="input-box" value="13.0" step="0.1" oninput="update('evBox')"></div>
+            <input type="range" id="evRange" min="-5" max="20" step="0.3333" value="13" oninput="update('evRange')">
+            <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;"><span>-5 (星空)</span><span>14 (晴天)</span></div>
+        </div>
+
         <div class="card">
             <div style="display:flex; align-items:center; margin-bottom:10px;">
                 <input type="checkbox" id="lockEvMode" onchange="toggleLockEv()" style="margin-right:10px;">
@@ -153,12 +160,6 @@
             </div>
         </div>
         
-        <div class="card">
-            <div class="input-row"><label style="font-size:0.8rem">Target Environment (EV)</label><input type="number" id="evBox" class="input-box" value="13.0" step="0.1" oninput="update('evBox')"></div>
-            <input type="range" id="evRange" min="-5" max="20" step="0.3333" value="13" oninput="update('evRange')">
-            <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;"><span>-5 (星空)</span><span>14 (晴天)</span></div>
-        </div>
-
         <div class="card">
             <div class="input-row"><label style="font-size:0.8rem">Shutter Speed</label><input type="text" id="ssBox" class="input-box" value="1/125" readonly></div>
             <input type="range" id="ssRange" min="0" max="72" step="1" value="18" oninput="update('ssRange')">
@@ -199,17 +200,14 @@
     function switchTab(type) {
         currentTab = type;
         
-        // パネル切り替え
         document.querySelectorAll('.monitor-card > div').forEach(el => el.classList.remove('active'));
         document.getElementById(type + 'View').classList.add('active');
         
-        // コントロール表示切り替え
         document.getElementById('dofControls').style.display = (type === 'dof' || type === 'frame') ? 'block' : 'none';
         document.getElementById('focalControl').style.display = (type === 'dof' || type === 'frame') ? 'block' : 'none';
         document.getElementById('apertureControl').style.display = (type === 'dof' || type === 'exposure') ? 'block' : 'none';
         document.getElementById('exposureControls').style.display = type === 'exposure' ? 'block' : 'none';
         
-        // タブ見た目切り替え
         document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
         document.getElementById('tab' + type.charAt(0).toUpperCase() + type.slice(1)).classList.add('active');
         
@@ -228,23 +226,10 @@
     function toggleLockEv() {
         isLockEv = document.getElementById('lockEvMode').checked;
         document.getElementById('autoTargetDiv').style.display = isLockEv ? 'block' : 'none';
-        
-        if (isLockEv) {
-            // ロックを有効にした瞬間の設定値からEVを計算し、Targetとして固定
-            const F = fStops[document.getElementById('fRange').value];
-            // ★構文エラー修正箇所: value) -> value]
-            const SS = shutterSpeeds[document.getElementById('ssRange').value].v; 
-            const ISO = isoValues[document.getElementById('isoRange').value];
-            const curEV = Math.log2((F * F) / SS) - Math.log2(ISO / 100);
-            
-            document.getElementById('evRange').value = curEV;
-            document.getElementById('evBox').value = curEV.toFixed(1);
-        }
         update('lockEv');
     }
 
     function update(src) {
-        // 基本設定の取得
         const isWater = document.getElementById('waterMode').checked;
         const subSize = parseFloat(document.getElementById('subSize').value) || 0.1;
         const cropFactor = parseFloat(document.getElementById('sensorSize').value) || 1.0;
@@ -258,7 +243,6 @@
         let ssIdx = parseInt(document.getElementById('ssRange').value);
         let isoIdx = parseInt(document.getElementById('isoRange').value);
 
-        // UIの双方向同期
         if(src === 'distRange') { L = document.getElementById('distRange').value; document.getElementById('distBox').value = L; }
         if(src === 'distBox') { L = parseFloat(document.getElementById('distBox').value) || 0.1; document.getElementById('distRange').value = Math.min(1000, L); }
         if(src === 'flRange') { FL = document.getElementById('flRange').value; document.getElementById('flBox').value = FL; }
@@ -267,12 +251,10 @@
         if(src === 'evRange') { targetEV = parseFloat(document.getElementById('evRange').value); document.getElementById('evBox').value = targetEV.toFixed(1); }
         if(src === 'evBox') { targetEV = parseFloat(document.getElementById('evBox').value) || 0; document.getElementById('evRange').value = Math.max(-5, Math.min(20, targetEV)); }
 
-        // 物理・光学計算準備
         const f_calc = isWater ? FL * 1.33 : FL;
         const coc = (0.030 / cropFactor) * Math.sqrt(24 / resolution);
         const distMM = L * 1000;
 
-        // 露出スライダーの状態リセット
         document.getElementById('isoRange').disabled = false;
         document.getElementById('ssRange').disabled = false;
         document.getElementById('fRange').disabled = false;
@@ -282,7 +264,6 @@
             const autoTarget = document.querySelector('input[name="autoTarget"]:checked').value;
             
             if (autoTarget === 'ISO') {
-                // ISOを自動調整（絞り/SS優先）
                 document.getElementById('isoRange').disabled = true;
                 if (src !== 'isoRange') {
                     const SS_cur = shutterSpeeds[ssIdx].v;
@@ -295,7 +276,6 @@
                     isoIdx = bestIdx; document.getElementById('isoRange').value = isoIdx;
                 }
             } else if (autoTarget === 'SS') {
-                // シャッタースピードを自動調整（絞り/ISO優先）
                 document.getElementById('ssRange').disabled = true;
                 if (src !== 'ssRange') {
                     const ISO_cur = isoValues[isoIdx];
@@ -308,7 +288,6 @@
                     ssIdx = bestIdx; document.getElementById('ssRange').value = ssIdx;
                 }
             } else if (autoTarget === 'F') {
-                // 絞りを自動調整（SS/ISO優先）
                 document.getElementById('fRange').disabled = true;
                 if (src !== 'fRange') {
                     const SS_cur = shutterSpeeds[ssIdx].v;
@@ -341,6 +320,15 @@
             }
         }
 
+        // 【Target EVの従属連動 (LOCK OFF時)】
+        // EVが手動で動かされた場合以外は、現在のF, SS, ISOからEVを逆算してTargetを更新
+        if (!isLockEv && src !== 'evRange' && src !== 'evBox') {
+            targetEV = Math.log2((F * F) / shutterSpeeds[ssIdx].v) - Math.log2(isoValues[isoIdx] / 100);
+            targetEV = Math.max(-5, Math.min(20, targetEV));
+            document.getElementById('evRange').value = targetEV;
+            document.getElementById('evBox').value = targetEV.toFixed(1);
+        }
+
         // --- 露出のUI反映 ---
         const finalSS = shutterSpeeds[ssIdx].v;
         const finalISO = isoValues[isoIdx];
@@ -349,12 +337,9 @@
         document.getElementById('isoBox').value = finalISO;
 
         const currentEV = Math.log2((F * F) / finalSS) - Math.log2(finalISO / 100);
-        
-        // 露出メーターとテキストの更新
         document.getElementById('evValText').innerText = currentEV.toFixed(1);
         document.getElementById('expSummary').innerText = `F${F.toFixed(1)} | ${shutterSpeeds[ssIdx].d} | ISO ${finalISO}`;
 
-        // Target EVに対するメーターの振れ (-3EV 〜 +3EV)
         const diffEV = targetEV - currentEV; 
         let pointerPercent = 50 + (diffEV * (50 / 3));
         pointerPercent = Math.max(0, Math.min(100, pointerPercent));
@@ -404,7 +389,6 @@
         ellipse.style.border = `2px solid ${color}`;
     }
     
-    // アプリ起動時の初期化
     update('init');
 </script>
 </body>
