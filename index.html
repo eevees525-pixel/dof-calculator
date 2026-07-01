@@ -9,11 +9,11 @@
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text); margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
         .container { width: 100%; max-width: 500px; }
         .tabs { display: flex; gap: 5px; margin-bottom: 10px; width: 100%; }
-        .tab { flex: 1; padding: 12px; background: #1a2633; border: none; color: var(--text-dim); cursor: pointer; border-radius: 8px 8px 0 0; font-weight: bold; font-size: 0.75rem; text-align: center; }
+        .tab { flex: 1; padding: 12px; background: #1a2633; border: none; color: var(--text-dim); cursor: pointer; border-radius: 8px 8px 0 0; font-weight: bold; font-size: 0.75rem; text-align: center; transition: 0.2s; }
         .tab.active { background: var(--card-bg); color: var(--accent); border-bottom: 2px solid var(--accent); }
         .monitor-card { background: #000; border: 2px solid #1a334d; border-radius: 8px; padding: 15px; margin-bottom: 15px; position: relative; }
-        #dofView { display: block; }
-        #frameView, #expView { display: none; }
+        #dofView, #frameView, #expView { display: none; }
+        #dofView.active, #frameView.active, #expView.active { display: block; }
         .viz-container { height: 90px; background: repeating-linear-gradient(90deg, #05101a 0px, #05101a 49px, #1a334d 50px); position: relative; border-radius: 4px; margin: 15px 0; }
         .dof-bar { height: 36px; background: var(--green-grad); position: absolute; top: 27px; transition: 0.3s; }
         .subject-marker { width: 2px; height: 60px; background: #fff; position: absolute; top: 15px; z-index: 10; box-shadow: 0 0 10px var(--accent); }
@@ -35,7 +35,7 @@
         input[type="range"]::-webkit-slider-thumb { -webkit-appearance: none; width: 18px; height: 18px; background: var(--accent); border-radius: 50%; cursor: pointer; }
         input[type="range"]:disabled { opacity: 0.3; cursor: not-allowed; }
         select { background: #000; color: var(--accent); border: 1px solid #1a334d; padding: 5px; border-radius: 4px; outline: none; font-weight: bold; }
-        .radio-group label { display: block; margin-bottom: 8px; cursor: pointer; font-size: 0.8rem; }
+        .radio-group label { display: block; margin-bottom: 8px; cursor: pointer; font-size: 0.8rem; color: var(--text); }
         .radio-group input[type="radio"] { accent-color: var(--lock-accent); margin-right: 8px; }
     </style>
 </head>
@@ -49,7 +49,7 @@
     </div>
 
     <div class="monitor-card">
-        <div id="dofView">
+        <div id="dofView" class="active">
             <div class="viz-container"><div id="dofBar" class="dof-bar"></div><div id="subjectMarker" class="subject-marker"></div></div>
             <div class="res-grid">
                 <div class="res-item"><div class="res-lab">NEAR LIMIT</div><div id="nearVal" class="res-val">-</div></div>
@@ -69,7 +69,7 @@
 
         <div id="expView">
             <div style="text-align:center; padding:10px 0;">
-                <div style="font-size:0.6rem; color:var(--text-dim); letter-spacing:1px;">TARGET EV (ISO100 REF)</div>
+                <div style="font-size:0.6rem; color:var(--text-dim); letter-spacing:1px;">CURRENT EV (ISO100 REF)</div>
                 <div id="evValText" style="font-size:2.6rem; font-weight:bold; color:var(--accent); margin:5px 0;">13.0</div>
                 <div id="expSummary" style="font-size:0.8rem; color:var(--lock-accent); font-weight:bold;">F8.0 | 1/125s | ISO 100</div>
             </div>
@@ -146,9 +146,10 @@
                 <label style="font-size:0.9rem; font-weight:bold; color:var(--lock-accent);">🔒 LOCK BRIGHTNESS (EV)</label>
             </div>
             <div id="autoTargetDiv" class="radio-group" style="display:none; background:#05101a; padding:12px; border-radius:4px; border: 1px solid #1a334d;">
-                <label><input type="radio" name="autoTarget" value="ISO" checked onchange="update('evTarget')"> Auto ISO (Calculates ISO)</label>
-                <label><input type="radio" name="autoTarget" value="SS" onchange="update('evTarget')"> Auto SS (Calculates Shutter Speed)</label>
-                <label><input type="radio" name="autoTarget" value="F" onchange="update('evTarget')"> Auto F (Calculates Aperture)</label>
+                <div style="margin-bottom:8px; font-weight:bold; font-size:0.75rem; color:var(--accent);">優先モード選択 (自動調整される項目)</div>
+                <label><input type="radio" name="autoTarget" value="ISO" checked onchange="update('evTarget')"> 絞り/SS優先 (ISOを自動計算)</label>
+                <label><input type="radio" name="autoTarget" value="SS" onchange="update('evTarget')"> 絞り/ISO優先 (SSを自動計算)</label>
+                <label><input type="radio" name="autoTarget" value="F" onchange="update('evTarget')"> SS/ISO優先 (絞りを自動計算)</label>
             </div>
         </div>
         
@@ -197,17 +198,21 @@
 
     function switchTab(type) {
         currentTab = type;
-        document.getElementById('dofView').style.display = type === 'dof' ? 'block' : 'none';
-        document.getElementById('frameView').style.display = type === 'frame' ? 'block' : 'none';
-        document.getElementById('expView').style.display = type === 'exposure' ? 'block' : 'none';
         
+        // パネル切り替え
+        document.querySelectorAll('.monitor-card > div').forEach(el => el.classList.remove('active'));
+        document.getElementById(type + 'View').classList.add('active');
+        
+        // コントロール表示切り替え
         document.getElementById('dofControls').style.display = (type === 'dof' || type === 'frame') ? 'block' : 'none';
         document.getElementById('focalControl').style.display = (type === 'dof' || type === 'frame') ? 'block' : 'none';
         document.getElementById('apertureControl').style.display = (type === 'dof' || type === 'exposure') ? 'block' : 'none';
         document.getElementById('exposureControls').style.display = type === 'exposure' ? 'block' : 'none';
         
+        // タブ見た目切り替え
         document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
         document.getElementById('tab' + type.charAt(0).toUpperCase() + type.slice(1)).classList.add('active');
+        
         update('tab');
     }
 
@@ -223,11 +228,15 @@
     function toggleLockEv() {
         isLockEv = document.getElementById('lockEvMode').checked;
         document.getElementById('autoTargetDiv').style.display = isLockEv ? 'block' : 'none';
+        
         if (isLockEv) {
+            // ロックを有効にした瞬間の設定値からEVを計算し、Targetとして固定
             const F = fStops[document.getElementById('fRange').value];
+            // ★構文エラー修正箇所: value) -> value]
             const SS = shutterSpeeds[document.getElementById('ssRange').value].v; 
             const ISO = isoValues[document.getElementById('isoRange').value];
             const curEV = Math.log2((F * F) / SS) - Math.log2(ISO / 100);
+            
             document.getElementById('evRange').value = curEV;
             document.getElementById('evBox').value = curEV.toFixed(1);
         }
@@ -235,6 +244,7 @@
     }
 
     function update(src) {
+        // 基本設定の取得
         const isWater = document.getElementById('waterMode').checked;
         const subSize = parseFloat(document.getElementById('subSize').value) || 0.1;
         const cropFactor = parseFloat(document.getElementById('sensorSize').value) || 1.0;
@@ -248,6 +258,7 @@
         let ssIdx = parseInt(document.getElementById('ssRange').value);
         let isoIdx = parseInt(document.getElementById('isoRange').value);
 
+        // UIの双方向同期
         if(src === 'distRange') { L = document.getElementById('distRange').value; document.getElementById('distBox').value = L; }
         if(src === 'distBox') { L = parseFloat(document.getElementById('distBox').value) || 0.1; document.getElementById('distRange').value = Math.min(1000, L); }
         if(src === 'flRange') { FL = document.getElementById('flRange').value; document.getElementById('flBox').value = FL; }
@@ -256,18 +267,22 @@
         if(src === 'evRange') { targetEV = parseFloat(document.getElementById('evRange').value); document.getElementById('evBox').value = targetEV.toFixed(1); }
         if(src === 'evBox') { targetEV = parseFloat(document.getElementById('evBox').value) || 0; document.getElementById('evRange').value = Math.max(-5, Math.min(20, targetEV)); }
 
+        // 物理・光学計算準備
         const f_calc = isWater ? FL * 1.33 : FL;
         const coc = (0.030 / cropFactor) * Math.sqrt(24 / resolution);
         const distMM = L * 1000;
 
+        // 露出スライダーの状態リセット
         document.getElementById('isoRange').disabled = false;
         document.getElementById('ssRange').disabled = false;
         document.getElementById('fRange').disabled = false;
 
+        // 【露出シミュレーション (LOCK EV時)】
         if (currentTab === 'exposure' && isLockEv) {
             const autoTarget = document.querySelector('input[name="autoTarget"]:checked').value;
             
             if (autoTarget === 'ISO') {
+                // ISOを自動調整（絞り/SS優先）
                 document.getElementById('isoRange').disabled = true;
                 if (src !== 'isoRange') {
                     const SS_cur = shutterSpeeds[ssIdx].v;
@@ -280,6 +295,7 @@
                     isoIdx = bestIdx; document.getElementById('isoRange').value = isoIdx;
                 }
             } else if (autoTarget === 'SS') {
+                // シャッタースピードを自動調整（絞り/ISO優先）
                 document.getElementById('ssRange').disabled = true;
                 if (src !== 'ssRange') {
                     const ISO_cur = isoValues[isoIdx];
@@ -292,6 +308,7 @@
                     ssIdx = bestIdx; document.getElementById('ssRange').value = ssIdx;
                 }
             } else if (autoTarget === 'F') {
+                // 絞りを自動調整（SS/ISO優先）
                 document.getElementById('fRange').disabled = true;
                 if (src !== 'fRange') {
                     const SS_cur = shutterSpeeds[ssIdx].v;
@@ -307,6 +324,7 @@
             }
         }
 
+        // 【被写界深度シミュレーション (LOCK Dist/F時)】
         if (currentTab === 'dof' || currentTab === 'frame') {
             if (locks.Dist && !locks.F && (src === 'flRange' || src === 'flBox' || src === 'sensor')) {
                 if (distMM > f_calc) {
@@ -323,6 +341,7 @@
             }
         }
 
+        // --- 露出のUI反映 ---
         const finalSS = shutterSpeeds[ssIdx].v;
         const finalISO = isoValues[isoIdx];
         document.getElementById('fBox').value = F.toFixed(1);
@@ -330,14 +349,18 @@
         document.getElementById('isoBox').value = finalISO;
 
         const currentEV = Math.log2((F * F) / finalSS) - Math.log2(finalISO / 100);
-        document.getElementById('evValText').innerText = targetEV.toFixed(1);
+        
+        // 露出メーターとテキストの更新
+        document.getElementById('evValText').innerText = currentEV.toFixed(1);
         document.getElementById('expSummary').innerText = `F${F.toFixed(1)} | ${shutterSpeeds[ssIdx].d} | ISO ${finalISO}`;
 
+        // Target EVに対するメーターの振れ (-3EV 〜 +3EV)
         const diffEV = targetEV - currentEV; 
         let pointerPercent = 50 + (diffEV * (50 / 3));
         pointerPercent = Math.max(0, Math.min(100, pointerPercent));
         document.getElementById('evMeterPointer').style.left = pointerPercent + "%";
 
+        // --- DOFのUI反映 ---
         const H = (Math.pow(f_calc, 2) / (F * coc)) + f_calc;
         const near = (distMM * (H - f_calc)) / (H + distMM - 2*f_calc);
         const far = (distMM * (H - f_calc)) / (H - distMM);
@@ -358,6 +381,7 @@
         document.getElementById('dofBar').style.left = Math.min(100, nP) + "%";
         document.getElementById('dofBar').style.width = Math.max(0, Math.min(100-nP, fP-nP)) + "%";
 
+        // --- FRAMEのUI反映 ---
         const safeDist = Math.max(distMM, f_calc + 1);
         const beta = f_calc / (safeDist - f_calc);
         const visibleWidth = (36 / cropFactor) / beta; 
@@ -379,6 +403,8 @@
         ellipse.style.backgroundColor = color + "66";
         ellipse.style.border = `2px solid ${color}`;
     }
+    
+    // アプリ起動時の初期化
     update('init');
 </script>
 </body>
