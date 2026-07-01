@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DOF & FRAME Pro v12.4</title>
+    <title>DOF & FRAME & EXP Pro v13.0</title>
     <style>
         :root {
             --bg-color: #050a0f;
@@ -19,7 +19,7 @@
         .container { width: 100%; max-width: 500px; }
 
         .tabs { display: flex; gap: 5px; margin-bottom: 10px; width: 100%; }
-        .tab { flex: 1; padding: 12px; background: #1a2633; border: none; color: var(--text-dim); cursor: pointer; border-radius: 8px 8px 0 0; font-weight: bold; }
+        .tab { flex: 1; padding: 12px; background: #1a2633; border: none; color: var(--text-dim); cursor: pointer; border-radius: 8px 8px 0 0; font-weight: bold; font-size: 0.75rem; text-align: center; }
         .tab.active { background: var(--card-bg); color: var(--accent); border-bottom: 2px solid var(--accent); }
 
         .monitor-card { background: #000; border: 2px solid #1a334d; border-radius: 8px; padding: 15px; margin-bottom: 15px; position: relative; }
@@ -30,9 +30,11 @@
         .subject-marker { width: 2px; height: 60px; background: #fff; position: absolute; top: 15px; z-index: 10; box-shadow: 0 0 10px var(--accent); }
 
         #frameView { display: none; }
-        .frame-container { width: 100%; aspect-ratio: 3 / 2; background: #1a1a1a; position: relative; display: flex; justify-content: center; align-items: center; border-radius: 4px; overflow: hidden; border: 1px solid #333; }
-        .sensor-outline { width: 95%; height: 95%; border: 1.5px solid rgba(255,255,255,0.8); box-shadow: 0 0 0 1000px rgba(0,0,0,0.7); z-index: 5; pointer-events: none; position: absolute; }
-        .subject-ellipse { position: absolute; z-index: 2; border-radius: 50%; transition: 0.4s; filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); }
+        .frame-container { width: 100%; aspect-ratio: 3 / 2; background: #1a1a1a; position: relative; overflow: hidden; border: 1px solid #333; border-radius: 4px; }
+        .sensor-outline { width: 95%; height: 95%; border: 1.5px solid rgba(255,255,255,0.8); box-shadow: 0 0 0 1000px rgba(0,0,0,0.7); z-index: 5; pointer-events: none; position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); }
+        .subject-ellipse { position: absolute; top: 50%; left: 50%; transform: translate(-50%, -50%); z-index: 2; border-radius: 50%; transition: width 0.15s ease-out, background-color 0.3s; filter: drop-shadow(0 0 10px rgba(255,255,255,0.2)); }
+
+        #expView { display: none; }
 
         .res-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; margin-top: 15px; }
         .res-item { background: #0a141d; padding: 8px; border-radius: 4px; border-left: 3px solid var(--accent); }
@@ -41,7 +43,7 @@
 
         .card { background: var(--card-bg); border-radius: 12px; padding: 15px; margin-bottom: 10px; border: 1px solid #1a334d; }
         .input-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
-        .input-box { background: #000; border: 1px solid #1a334d; color: var(--accent); font-size: 1.1rem; font-weight: bold; text-align: right; padding: 5px; border-radius: 4px; width: 95px; }
+        .input-box { background: #000; border: 1px solid #1a334d; color: var(--accent); font-size: 1.1rem; font-weight: bold; text-align: right; padding: 5px; border-radius: 4px; width: 105px; }
         .input-box.locked-style { color: var(--lock-accent); }
         
         .lock-btn { background: #222; border: 1px solid #444; color: #666; border-radius: 4px; font-size: 0.6rem; padding: 4px 8px; cursor: pointer; font-weight: bold; }
@@ -58,6 +60,7 @@
     <div class="tabs">
         <button id="tabDof" class="tab active" onclick="switchTab('dof')">DOF MONITOR</button>
         <button id="tabFrame" class="tab" onclick="switchTab('frame')">FRAME SIM</button>
+        <button id="tabExposure" class="tab" onclick="switchTab('exposure')">EXPOSURE SIM</button>
     </div>
 
     <div class="monitor-card">
@@ -84,30 +87,45 @@
                 <div class="res-item"><div class="res-lab">MAGNIFICATION</div><div id="magVal" class="res-val">-</div></div>
             </div>
         </div>
+
+        <div id="expView">
+            <div style="text-align:center; padding:10px 0;">
+                <div style="font-size:0.6rem; color:var(--text-dim); letter-spacing:1px;">CURRENT EV (ISO100 REFERENCE)</div>
+                <div id="evValText" style="font-size:2.6rem; font-weight:bold; color:var(--accent); margin:5px 0;">13.0</div>
+                <div id="expSummary" style="font-size:0.8rem; color:var(--lock-accent); font-weight:bold;">F8.0 | 1/125s | ISO 100</div>
+            </div>
+            <div style="height:6px; background:#1a334d; position:relative; border-radius:3px; margin:15px 20px 5px 20px;">
+                <div id="evMeterPointer" style="width:4px; height:14px; background:#fff; position:absolute; top:-4px; left:50%; transform:translateX(-50%); transition:0.15s; border-radius:2px; box-shadow:0 0 5px #fff;"></div>
+                <div style="position:absolute; width:100%; top:10px; display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim);">
+                    <span>-3 EV (UNDER)</span><span>MATCH (0)</span><span>+3 EV (OVER)</span>
+                </div>
+            </div>
+        </div>
     </div>
 
-    <div class="switch-box">
+    <div class="switch-box" id="waterModeContainer">
         <input type="checkbox" id="waterMode" onchange="update('mode')"> 🌊 UNDERWATER MODE (x1.33)
     </div>
 
-    <div class="card">
-        <div class="input-row">
-            <label style="font-size:0.8rem">Subject Size (m)</label>
-            <input type="number" id="subSize" class="input-box" value="10.0" step="0.1" oninput="update('subBox')">
-        </div>
-    </div>
-
-    <div class="card">
-        <div class="input-row">
-            <div style="display:flex; gap:5px; align-items:center;">
-                <button id="lockDist" class="lock-btn" onclick="toggleLock('Dist')">LOCK</button>
-                <label style="font-size:0.8rem">Distance (m)</label>
+    <div id="dofControls">
+        <div class="card">
+            <div class="input-row">
+                <label style="font-size:0.8rem">Subject Size (m)</label>
+                <input type="number" id="subSize" class="input-box" value="10.0" step="0.1" oninput="update('subBox')">
             </div>
-            <input type="number" id="distBox" class="input-box" value="5.0" step="0.1" oninput="update('distBox')">
         </div>
-        <input type="range" id="distRange" min="0.1" max="1000" step="1" value="5" oninput="update('distRange')">
-        <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;">
-            <span>0.1m</span><span>250m</span><span>500m</span><span>750m</span><span>1000m</span>
+        <div class="card">
+            <div class="input-row">
+                <div style="display:flex; gap:5px; align-items:center;">
+                    <button id="lockDist" class="lock-btn" onclick="toggleLock('Dist')">LOCK</button>
+                    <label style="font-size:0.8rem">Distance (m)</label>
+                </div>
+                <input type="number" id="distBox" class="input-box" value="5.0" step="0.1" oninput="update('distBox')">
+            </div>
+            <input type="range" id="distRange" min="0.1" max="1000" step="1" value="5" oninput="update('distRange')">
+            <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;">
+                <span>0.1m</span><span>250m</span><span>500m</span><span>750m</span><span>1000m</span>
+            </div>
         </div>
     </div>
 
@@ -122,7 +140,7 @@
         <input type="range" id="fRange" min="0" max="16" step="1" value="7" oninput="update('fRange')">
     </div>
 
-    <div class="card">
+    <div class="card" id="focalControl">
         <div class="input-row">
             <div style="display:flex; gap:5px; align-items:center;">
                 <button id="lockFL" class="lock-btn" onclick="toggleLock('FL')">LOCK</button>
@@ -135,19 +153,106 @@
             <span>14mm</span><span>800mm</span><span>1600mm</span>
         </div>
     </div>
+
+    <div id="exposureControls" style="display:none;">
+        <div class="switch-box">
+            <input type="checkbox" id="lockEvMode" onchange="toggleLockEv()"> 🔒 LOCK EXPOSURE (露出固定・連動モード)
+        </div>
+        
+        <div class="card">
+            <div class="input-row">
+                <label style="font-size:0.8rem">Target Environment (EV)</label>
+                <input type="number" id="evBox" class="input-box" value="13.0" step="0.1" oninput="update('evBox')">
+            </div>
+            <input type="range" id="evRange" min="-5" max="20" step="0.3333" value="13" oninput="update('evRange')">
+            <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;">
+                <span>-5 (星空/極暗)</span><span>0 (夜景)</span><span>7 (室内)</span><span>14 (日中晴天)</span><span>20 (極輝)</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="input-row">
+                <label style="font-size:0.8rem">Shutter Speed</label>
+                <input type="text" id="ssBox" class="input-box" value="1/125" readonly>
+            </div>
+            <input type="range" id="ssRange" min="0" max="72" step="1" value="30" oninput="update('ssRange')">
+            <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;">
+                <span>1/8000s</span><span>1s</span><span>30s</span><span>32m (バルブ)</span>
+            </div>
+        </div>
+
+        <div class="card">
+            <div class="input-row">
+                <label style="font-size:0.8rem">ISO Sensitivity</label>
+                <input type="number" id="isoBox" class="input-box" value="100" readonly>
+            </div>
+            <input type="range" id="isoRange" min="0" max="27" step="1" value="3" oninput="update('isoRange')">
+            <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;">
+                <span>ISO 50</span><span>ISO 100</span><span>ISO 6400</span><span>ISO 102400</span>
+            </div>
+        </div>
+    </div>
 </div>
 
 <script>
+    // 1/3段刻みの正確なマッピングデータ
     const fStops = [1.4, 2.0, 2.8, 4.0, 5.6, 6.3, 7.1, 8.0, 9.0, 10, 11, 13, 14, 16, 18, 20, 22];
+    
+    const isoValues = [
+        50, 64, 80, 100, 125, 160, 200, 250, 320, 400, 500, 640, 800, 1000, 
+        1250, 1600, 2000, 2500, 3200, 4000, 5000, 6400, 8000, 10000, 12800, 25600, 51200, 102400
+    ];
+
+    const shutterSpeeds = [
+        {d:"1/8000", v:1/8000}, {d:"1/6400", v:1/6400}, {d:"1/5000", v:1/5000},
+        {d:"1/4000", v:1/4000}, {d:"1/3200", v:1/3200}, {d:"1/2500", v:1/2500},
+        {d:"1/2000", v:1/2000}, {d:"1/1600", v:1/1600}, {d:"1/1250", v:1/1250},
+        {d:"1/1000", v:1/1000}, {d:"1/800", v:1/800}, {d:"1/640", v:1/640},
+        {d:"1/500", v:1/500}, {d:"1/400", v:1/400}, {d:"1/320", v:1/320},
+        {d:"1/250", v:1/250}, {d:"1/200", v:1/200}, {d:"1/160", v:1/160},
+        {d:"1/125", v:1/125}, {d:"1/100", v:1/100}, {d:"1/80", v:1/80},
+        {d:"1/60", v:1/60}, {d:"1/50", v:1/50}, {d:"1/40", v:1/40},
+        {d:"1/30", v:1/30}, {d:"1/25", v:1/25}, {d:"1/20", v:1/20},
+        {d:"1/15", v:1/15}, {d:"1/13", v:1/13}, {d:"1/10", v:1/10},
+        {d:"1/8", v:1/8}, {d:"1/6", v:1/6}, {d:"1/5", v:1/5},
+        {d:"1/4", v:1/4}, {d:"1/3.2", v:1/3.2}, {d:"1/2.5", v:1/2.5},
+        {d:"1/2", v:1/2}, {d:"1/1.6", v:1/1.6}, {d:"1/1.3", v:1/1.3},
+        {d:"1\"", v:1}, {d:"1.3\"", v:1.3}, {d:"1.6\"", v:1.6},
+        {d:"2\"", v:2}, {d:"2.5\"", v:2.5}, {d:"3.2\"", v:3.2},
+        {d:"4\"", v:4}, {d:"5\"", v:5}, {d:"6\"", v:6},
+        {d:"8\"", v:8}, {d:"10\"", v:10}, {d:"13\"", v:13},
+        {d:"15\"", v:15}, {d:"20\"", v:20}, {d:"25\"", v:25},
+        {d:"30\"", v:30}, {d:"40\"", v:40}, {d:"50\"", v:50},
+        {d:"1m(60s)", v:60}, {d:"1m20s", v:80}, {d:"1m40s", v:100},
+        {d:"2m(120s)", v:120}, {d:"2m40s", v:160}, {d:"3m20s", v:200},
+        {d:"4m(240s)", v:240}, {d:"5m20s", v:320}, {d:"6m40s", v:400},
+        {d:"8m(480s)", v:480}, {d:"10m40s", v:640}, {d:"13m20s", v:800},
+        {d:"16m(960s)", v:960}, {d:"21m20s", v:1280}, {d:"26m40s", v:1600},
+        {d:"32m", v:1920}
+    ];
+
     let locks = { F: false, FL: false, Dist: false };
+    let isLockEv = false;
+    let currentTab = 'dof';
 
     function switchTab(type) {
+        currentTab = type;
         document.getElementById('dofView').style.display = type === 'dof' ? 'block' : 'none';
         document.getElementById('frameView').style.display = type === 'frame' ? 'block' : 'none';
-        document.getElementById('apertureControl').style.display = type === 'dof' ? 'block' : 'none';
+        document.getElementById('expView').style.display = type === 'exposure' ? 'block' : 'none';
+        
+        document.getElementById('dofControls').style.display = (type === 'dof' || type === 'frame') ? 'block' : 'none';
+        document.getElementById('focalControl').style.display = (type === 'dof' || type === 'frame') ? 'block' : 'none';
+        document.getElementById('waterModeContainer').style.display = (type === 'dof' || type === 'frame') ? 'block' : 'none';
+        
+        document.getElementById('apertureControl').style.display = (type === 'dof' || type === 'exposure') ? 'block' : 'none';
+        document.getElementById('exposureControls').style.display = type === 'exposure' ? 'block' : 'none';
         
         document.getElementById('tabDof').classList.toggle('active', type === 'dof');
         document.getElementById('tabFrame').classList.toggle('active', type === 'frame');
+        document.getElementById('tabExposure').classList.toggle('active', type === 'exposure');
+        
+        // 露出タブ切り替え時はLOCKボタンの状態による強制逆算を防ぐため単独同期
         update('tab');
     }
 
@@ -160,88 +265,80 @@
         if (key === 'F') box.readOnly = true; 
     }
 
+    function toggleLockEv() {
+        isLockEv = document.getElementById('lockEvMode').checked;
+        if (isLockEv) {
+            // ロックを有効にした瞬間のF値、SS、ISOから現在のEVを計算してTarget環境光として固定
+            const F = fStops[document.getElementById('fRange').value];
+            const SS = shutterSpeeds[document.getElementById('ssRange').value).v;
+            const ISO = isoValues[document.getElementById('isoRange').value];
+            const curEV = Math.log2((F * F) / SS) - Math.log2(ISO / 100);
+            
+            document.getElementById('evRange').value = curEV;
+            document.getElementById('evBox').value = curEV.toFixed(1);
+        }
+        update('lockEv');
+    }
+
     function update(src) {
         const isWater = document.getElementById('waterMode').checked;
         const subSize = parseFloat(document.getElementById('subSize').value) || 0.1;
         
         let FL = parseFloat(document.getElementById('flBox').value) || 24;
         let L = parseFloat(document.getElementById('distBox').value) || 0.1;
-        let F_idx = document.getElementById('fRange').value;
+        let F_idx = parseInt(document.getElementById('fRange').value);
         let F = fStops[F_idx];
 
+        let targetEV = parseFloat(document.getElementById('evRange').value);
+        let ssIdx = parseInt(document.getElementById('ssRange').value);
+        let isoIdx = parseInt(document.getElementById('isoRange').value);
+
+        // 各種スライダー・ボックスの単独同期
         if(src === 'distRange') { L = document.getElementById('distRange').value; document.getElementById('distBox').value = L; }
-        if(src === 'distBox') { 
-            L = parseFloat(document.getElementById('distBox').value) || 0.1; 
-            document.getElementById('distRange').value = Math.min(1000, L); 
-        }
+        if(src === 'distBox') { L = parseFloat(document.getElementById('distBox').value) || 0.1; document.getElementById('distRange').value = Math.min(1000, L); }
         if(src === 'flRange') { FL = document.getElementById('flRange').value; document.getElementById('flBox').value = FL; }
-        if(src === 'flBox') { 
-            FL = parseFloat(document.getElementById('flBox').value) || 14; 
-            document.getElementById('flRange').value = Math.min(1600, FL); 
-        }
-        if(src === 'fRange') { F = fStops[F_idx]; document.getElementById('fBox').value = F.toFixed(1); }
+        if(src === 'flBox') { FL = parseFloat(document.getElementById('flBox').value) || 14; document.getElementById('flRange').value = Math.min(1600, FL); }
+        if(src === 'fRange') { F = fStops[F_idx]; }
+        if(src === 'evRange') { targetEV = parseFloat(document.getElementById('evRange').value); document.getElementById('evBox').value = targetEV.toFixed(1); }
+        if(src === 'evBox') { targetEV = parseFloat(document.getElementById('evBox').value) || 0; document.getElementById('evRange').value = Math.max(-5, Math.min(20, targetEV)); }
 
         const f_calc = isWater ? FL * 1.33 : FL;
         const coc = 0.030;
         const distMM = L * 1000;
 
-        if (locks.Dist && !locks.F && (src === 'flRange' || src === 'flBox')) {
-            if (distMM > f_calc) {
-                let idealF = Math.pow(f_calc, 2) / ((distMM - f_calc) * coc);
-                let bestIdx = fStops.findIndex(val => val >= idealF);
-                if (bestIdx === -1) bestIdx = fStops.length - 1;
-                document.getElementById('fRange').value = bestIdx;
-                F = fStops[bestIdx];
-                document.getElementById('fBox').value = F.toFixed(1);
+        // 【露出固定（LOCK EXPOSURE）時の連動ロジック】
+        if (currentTab === 'exposure' && isLockEv) {
+            // 絞り、ISO、または環境光EVスライダーが動いた場合、シャッタースピード(SS)を自動追従
+            if (src === 'fRange' || src === 'isoRange' || src === 'evRange' || src === 'evBox' || src === 'tab' || src === 'lockEv') {
+                const ISO_cur = isoValues[isoIdx];
+                let idealST = (F * F) / (Math.pow(2, targetEV) * (ISO_cur / 100));
+                
+                let bestSSIdx = 0;
+                let minDiff = Infinity;
+                for (let i = 0; i < shutterSpeeds.length; i++) {
+                    let diff = Math.abs(Math.log2(shutterSpeeds[i].v) - Math.log2(idealST));
+                    if (diff < minDiff) { minDiff = diff; bestSSIdx = i; }
+                }
+                ssIdx = bestSSIdx;
+                document.getElementById('ssRange').value = ssIdx;
+            }
+            // シャッタースピードが手動で動かされた場合、同じ露出を保つために絞り(F)を自動追従
+            else if (src === 'ssRange') {
+                const SS_cur = shutterSpeeds[ssIdx].v;
+                const ISO_cur = isoValues[isoIdx];
+                let idealF = Math.sqrt(SS_cur * Math.pow(2, targetEV) * (ISO_cur / 100));
+                
+                let bestFIdx = 0;
+                let minDiff = Infinity;
+                for (let i = 0; i < fStops.length; i++) {
+                    let diff = Math.abs(Math.log2(fStops[i]) - Math.log2(idealF));
+                    if (diff < minDiff) { minDiff = diff; bestFIdx = i; }
+                }
+                F_idx = bestFIdx;
+                document.getElementById('fRange').value = F_idx;
+                F = fStops[F_idx];
             }
         }
-        else if (locks.F && !locks.Dist && (src === 'flRange' || src === 'flBox')) {
-            let idealDist = (Math.pow(f_calc, 2) / (F * coc)) + f_calc;
-            L = (idealDist / 1000).toFixed(2);
-            document.getElementById('distBox').value = L;
-            document.getElementById('distRange').value = Math.min(1000, L);
-        }
 
-        const H = (Math.pow(f_calc, 2) / (F * coc)) + f_calc;
-        const near = (distMM * (H - f_calc)) / (H + distMM - 2*f_calc);
-        const far = (distMM * (H - f_calc)) / (H - distMM);
-        const isPan = (distMM >= H || far < 0);
-
-        document.getElementById('nearVal').innerText = (near/1000).toFixed(2) + "m";
-        document.getElementById('farVal').innerText = isPan ? "∞" : (far/1000).toFixed(2) + "m";
-        document.getElementById('hyperVal').innerText = (H/1000).toFixed(2) + "m";
-        
-        const label = document.getElementById('statusLabel');
-        label.innerText = isPan ? "PAN-FOCUS ACTIVE" : "LIMITED DOF";
-        label.style.color = isPan ? "var(--lock-accent)" : "var(--accent)";
-
-        // モニターバーのスケール調整（Lの値に合わせて動的に変化）
-        let maxViz = Math.max(20, L * 1.5);
-        const vizScale = 100 / maxViz;
-        document.getElementById('subjectMarker').style.left = Math.min(100, L * vizScale) + "%";
-        const nP = (near/1000 * vizScale), fP = isPan ? 100 : (far/1000 * vizScale);
-        document.getElementById('dofBar').style.left = Math.min(100, nP) + "%";
-        document.getElementById('dofBar').style.width = Math.max(0, Math.min(100-nP, fP-nP)) + "%";
-
-        const beta = f_calc / (distMM - f_calc);
-        const visibleWidth = 36 / beta; 
-        document.getElementById('fwVal').innerText = (visibleWidth/1000).toFixed(2) + "m";
-        document.getElementById('magVal').innerText = "1:" + (1/beta).toFixed(1);
-        
-        const ellipse = document.getElementById('subEllipse');
-        const displayWidth = Math.min(95, (subSize * 1000) / visibleWidth * 95);
-        ellipse.style.width = displayWidth + "%";
-        ellipse.style.aspectRatio = "1.5 / 1";
-        
-        let color = '#00aaff';
-        if (subSize <= 0.1) color = '#ff00ff';
-        else if (subSize <= 1.0) color = '#4caf50';
-        else if (subSize <= 2.0) color = '#ff9800';
-        else if (subSize > 10.0) color = '#1a237e';
-        ellipse.style.backgroundColor = color + "66";
-        ellipse.style.border = `2px solid ${color}`;
-    }
-    update('init');
-</script>
-</body>
-</html>
+        // 被写界深度タブのLOCK逆算（既存機能）
+  
