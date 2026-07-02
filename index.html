@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>DOF & FRAME & EXP Pro v16.1</title>
+    <title>DOF & FRAME & EXP Pro v17.0</title>
     <style>
         :root { --bg-color: #050a0f; --card-bg: #111a22; --accent: #00aaff; --lock-accent: #ff9800; --text: #f0f0f0; --text-dim: #888; --green-grad: linear-gradient(90deg, rgba(76,175,80,0) 0%, rgba(76,175,80,0.8) 20%, rgba(76,175,80,0.8) 80%, rgba(76,175,80,0) 100%); }
         body { font-family: 'Segoe UI', sans-serif; background: var(--bg-color); color: var(--text); margin: 0; padding: 10px; display: flex; flex-direction: column; align-items: center; }
@@ -99,8 +99,8 @@
         </div>
     </div>
 
-    <!-- 水中モード共通トグル（全タブで表示） -->
-    <div class="switch-box" style="justify-content:center; margin-bottom: 15px; border: 1px solid #1a334d;">
+    <!-- 水中モード共通トグル（EXPOSUREタブでは非表示） -->
+    <div id="waterModeContainer" class="switch-box" style="justify-content:center; margin-bottom: 15px; border: 1px solid #1a334d;">
         <label style="cursor:pointer; display:flex; align-items:center; width:100%; justify-content:center;">
             <input type="checkbox" id="waterMode" onchange="update('mode')" style="transform: scale(1.2); margin-right: 10px;">
             <span style="font-weight:bold; color:var(--accent);">🌊 UNDERWATER MODE (x1.33)</span>
@@ -166,14 +166,8 @@
         <input type="range" id="fRange" min="0" max="16" step="1" value="7" oninput="update('fRange')">
     </div>
     
-    <!-- EXPOSURE Controls -->
+    <!-- EXPOSURE Controls (Target EV Slider Removed) -->
     <div id="exposureControls" style="display:none;">
-        <div class="card">
-            <div class="input-row"><label style="font-size:0.8rem; font-weight:bold; color:var(--accent);">Target Environment (EV)</label><input type="number" id="evBox" class="input-box" value="13.0" step="0.1" oninput="update('evBox')"></div>
-            <input type="range" id="evRange" min="-5" max="20" step="0.3333" value="13" oninput="update('evRange')">
-            <div style="display:flex; justify-content:space-between; font-size:0.55rem; color:var(--text-dim); padding:0 2px;"><span>-5 (星空)</span><span>14 (晴天)</span></div>
-        </div>
-
         <div class="card" style="border-color: var(--lock-accent);">
             <div style="display:flex; align-items:center; margin-bottom:10px;">
                 <input type="checkbox" id="lockEvMode" onchange="toggleLockEv()" style="margin-right:10px; transform:scale(1.2);">
@@ -222,6 +216,7 @@
 
     let locks = { F: false, FL: false, Dist: false };
     let isLockEv = false;
+    let lockedEV = 13.0; // ロックされた明るさを保持する変数
     let currentTab = 'dof';
 
     function switchTab(type) {
@@ -235,6 +230,9 @@
         document.getElementById('focalControl').style.display = (type === 'dof' || type === 'frame') ? 'block' : 'none';
         document.getElementById('apertureControl').style.display = (type === 'dof' || type === 'exposure') ? 'block' : 'none';
         document.getElementById('exposureControls').style.display = type === 'exposure' ? 'block' : 'none';
+        
+        // EXPOSUREタブでは水中モードトグルを非表示にする
+        document.getElementById('waterModeContainer').style.display = (type === 'exposure') ? 'none' : 'flex';
         
         document.querySelectorAll('.tab').forEach(el => el.classList.remove('active'));
         document.getElementById('tab' + type.charAt(0).toUpperCase() + type.slice(1)).classList.add('active');
@@ -256,13 +254,11 @@
         document.getElementById('autoTargetDiv').style.display = isLockEv ? 'block' : 'none';
         
         if (isLockEv) {
+            // ロックした瞬間のカメラ設定から絶対的な明るさ(EV)を計算して固定
             const F = fStops[document.getElementById('fRange').value];
             const SS = shutterSpeeds[document.getElementById('ssRange').value].v; 
             const ISO = isoValues[document.getElementById('isoRange').value];
-            const curEV = Math.log2((F * F) / SS) - Math.log2(ISO / 100);
-            
-            document.getElementById('evRange').value = curEV;
-            document.getElementById('evBox').value = curEV.toFixed(1);
+            lockedEV = Math.log2((F * F) / SS) - Math.log2(ISO / 100);
         }
         update('lockEv');
     }
@@ -277,7 +273,6 @@
         let L = parseFloat(document.getElementById('distBox').value) || 5.0;
         let F_idx = parseInt(document.getElementById('fRange').value);
         let F = fStops[F_idx];
-        let targetEV = parseFloat(document.getElementById('evRange').value) || 13;
         let ssIdx = parseInt(document.getElementById('ssRange').value);
         let isoIdx = parseInt(document.getElementById('isoRange').value);
 
@@ -286,8 +281,6 @@
         if(src === 'flRange') { FL = document.getElementById('flRange').value; document.getElementById('flBox').value = FL; }
         if(src === 'flBox') { FL = parseFloat(document.getElementById('flBox').value) || 14; document.getElementById('flRange').value = Math.min(1600, FL); }
         if(src === 'fRange') { F = fStops[F_idx]; }
-        if(src === 'evRange') { targetEV = parseFloat(document.getElementById('evRange').value); document.getElementById('evBox').value = targetEV.toFixed(1); }
-        if(src === 'evBox') { targetEV = parseFloat(document.getElementById('evBox').value) || 0; document.getElementById('evRange').value = Math.max(-5, Math.min(20, targetEV)); }
 
         const f_calc = isWater ? FL * 1.33 : FL;
         const coc = (0.030 / cropFactor) * Math.sqrt(24 / resolution);
@@ -298,7 +291,11 @@
         document.getElementById('fRange').disabled = locks.F;
 
         // 【露出シミュレーション (LOCK EV時)】
-        if (currentTab === 'exposure' && isLockEv) {
+        let targetEV = lockedEV;
+        if (!isLockEv) {
+            // ロック解除時は現在の設定からリアルタイムにEVを計算
+            targetEV = Math.log2((F * F) / shutterSpeeds[ssIdx].v) - Math.log2(isoValues[isoIdx] / 100);
+        } else if (currentTab === 'exposure') {
             const autoTarget = document.querySelector('input[name="autoTarget"]:checked').value;
             
             if (autoTarget === 'SS') {
@@ -358,14 +355,6 @@
             }
         }
 
-        // 【Target EVの従属連動 (LOCK OFF時)】
-        if (!isLockEv && src !== 'evRange' && src !== 'evBox') {
-            targetEV = Math.log2((F * F) / shutterSpeeds[ssIdx].v) - Math.log2(isoValues[isoIdx] / 100);
-            targetEV = Math.max(-5, Math.min(20, targetEV));
-            document.getElementById('evRange').value = targetEV;
-            document.getElementById('evBox').value = targetEV.toFixed(1);
-        }
-
         // --- GENERALのUI反映 ---
         const selSensor = document.getElementById('sensorSize');
         document.getElementById('sysSensor').innerText = selSensor.options[selSensor.selectedIndex].text;
@@ -384,7 +373,11 @@
         document.getElementById('evValText').innerText = currentEV.toFixed(1);
         document.getElementById('expSummary').innerText = `F${F.toFixed(1)} | ${shutterSpeeds[ssIdx].d} | ISO ${finalISO}`;
 
-        const diffEV = targetEV - currentEV; 
+        // メーター表示 (Lock中は目標とのズレを表示、Unlock中は常に真ん中)
+        let diffEV = 0;
+        if (isLockEv) {
+            diffEV = currentEV - lockedEV; // +ならOVER, -ならUNDER
+        }
         let pointerPercent = 50 + (diffEV * (50 / 3));
         pointerPercent = Math.max(0, Math.min(100, pointerPercent));
         document.getElementById('evMeterPointer').style.left = pointerPercent + "%";
